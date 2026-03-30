@@ -385,7 +385,7 @@ export function AdminPanel({ shows, onClose, onSaved }) {
         headers: { "Content-Type": "application/json", "x-api-key": ANTHROPIC_KEY, "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" },
         body: JSON.stringify({
           model: "claude-sonnet-4-20250514",
-          max_tokens: 2000,
+          max_tokens: 4000,
           messages: [{
             role: "user",
             content: `Extract the following fields from this Show DNA document and return ONLY valid JSON, no markdown, no explanation:
@@ -414,14 +414,36 @@ export function AdminPanel({ shows, onClose, onSaved }) {
 
 If a field isn't found, use an empty string. Here is the Show DNA:
 
-${rawDna.substring(0, 12000)}`
+${rawDna.substring(0, 8000)}`
           }]
         })
       });
       const j = await r.json();
       const text = j.content?.filter(b => b.type === "text").map(b => b.text).join("") || "";
-      const clean = text.replace(/```json|```/g, "").trim();
-      const parsed = JSON.parse(clean);
+      let clean = text.replace(/```json|```/g, "").trim();
+      // If JSON is truncated, try to close it
+      if (!clean.endsWith("}")) {
+        // Find the last complete key-value pair and close the object
+        const lastComma = clean.lastIndexOf(",");
+        const lastBrace = clean.lastIndexOf("}");
+        if (lastComma > lastBrace) {
+          clean = clean.substring(0, lastComma) + "}";
+        } else {
+          clean = clean + "}";
+        }
+      }
+      let parsed;
+      try {
+        parsed = JSON.parse(clean);
+      } catch(jsonErr) {
+        // Try a more aggressive fix - find last complete string value
+        const match = clean.match(/^([\s\S]*"[^"]+"\s*:\s*"[^"]*")/);
+        if (match) {
+          parsed = JSON.parse(match[1] + "}");
+        } else {
+          throw jsonErr;
+        }
+      }
       setForm(prev => ({
         ...prev,
         name: parsed.name || prev?.name || "",
