@@ -214,8 +214,17 @@ export default function App(){
       const clipTx=clipTexts[i].trim();
       if(!clipTx){results.push({index:i+1,skipped:true,content:{}});continue;}
       try{
-        const clipSys=`You are creating social media clip content for ${d.name}.\nShow DNA: ${d.voice?.traits||""}\nTone: ${d.tag}\nPlatforms selected: ${platList}\n\nFor this clip transcript, generate content for EACH selected platform. Use these exact section headers:\n${clipPlatforms.includes("YouTube")?`YOUTUBE CLIP ${i+1}\nSEO Title: [punchy, keyword-rich, under 60 chars — NO show name prefix]\nDescription: [2-3 sentences optimized for YouTube search.]\nHashtags: [8-12 hashtags]\nKeywords: [8-12 comma-separated keywords]`:""}\n${clipPlatforms.includes("Instagram")?`INSTAGRAM REEL ${i+1}\nCaption: [Hook in first line. 100-150 words. End with question or CTA.]\nHashtags: [15-20 hashtags]`:""}\n${clipPlatforms.includes("Facebook")?`FACEBOOK REEL ${i+1}\nPost: [Hook line. 80-120 words. Warm and shareable. CTA at end.]`:""}\n${clipPlatforms.includes("TikTok")?`TIKTOK ${i+1}\nCaption: [Hook first. Under 150 chars. Native TikTok energy.]`:""}\n${clipPlatforms.includes("Spotify")?`SPOTIFY CLIP ${i+1}\nTitle: [Clear, descriptive clip title]\nDescription: [1-2 sentences for Spotify clip description]`:""}\n\nCRITICAL: Write ONLY the sections above. No commentary or extra text.`;
-        const r=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json","x-api-key":ANTHROPIC_KEY,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:2000,system:clipSys,messages:[{role:"user",content:`CLIP ${i+1} TRANSCRIPT:\n${clipTx.substring(0,8000)}`}]})});
+        const clipSys=`You are creating social media clip content for ${d.name}.
+
+CRITICAL: Output PLAIN TEXT only. No markdown. No asterisks. No bold. No hashtag # symbols in headers. Section headers in ALL CAPS only.\nShow DNA: ${d.voice?.traits||""}\nTone: ${d.tag}\nPlatforms selected: ${platList}\n\nFor this clip transcript, generate content for EACH selected platform. Use these exact section headers:\n${clipPlatforms.includes("YouTube")?`YOUTUBE CLIP ${i+1}\nSEO Title: [punchy, keyword-rich, under 60 chars — NO show name prefix]\nDescription: [2-3 sentences optimized for YouTube search.]\nHashtags: [8-12 hashtags]\nKeywords: [8-12 comma-separated keywords]`:""}\n${clipPlatforms.includes("Instagram")?`INSTAGRAM REEL ${i+1}\nCaption: [Hook in first line. 100-150 words. End with question or CTA.]\nHashtags: [15-20 hashtags]`:""}\n${clipPlatforms.includes("Facebook")?`FACEBOOK REEL ${i+1}\nPost: [Hook line. 80-120 words. Warm and shareable. CTA at end.]`:""}\n${clipPlatforms.includes("TikTok")?`TIKTOK ${i+1}\nCaption: [Hook first. Under 150 chars. Native TikTok energy.]`:""}\n${clipPlatforms.includes("Spotify")?`SPOTIFY CLIP ${i+1}\nTitle: [Clear, descriptive clip title]\nDescription: [1-2 sentences for Spotify clip description]`:""}\n\nCRITICAL: Write ONLY the sections above. No commentary or extra text.`;
+        // Add delay between clips to avoid rate limiting
+        if(i>0) await new Promise(res=>setTimeout(res,2000));
+        let r, clipAttempt=0;
+        while(clipAttempt<3){
+          r=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json","x-api-key":ANTHROPIC_KEY,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:2000,system:clipSys,messages:[{role:"user",content:`CLIP ${i+1} TRANSCRIPT:\n${clipTx.substring(0,8000)}`}]})});
+          if((r.status===529||r.status===503)&&clipAttempt<2){clipAttempt++;await new Promise(res=>setTimeout(res,4000*clipAttempt));continue;}
+          break;
+        }
         if(!r.ok){const et=await r.text();throw new Error(`API error (${r.status}): ${et.substring(0,100)}`);}
         const j=await r.json();const t=j.content?.filter(b=>b.type==="text").map(b=>b.text).join("\n")||"";
         results.push({index:i+1,skipped:false,content:t});
@@ -316,7 +325,7 @@ export default function App(){
                   ))}
                 </div>
               )}
-              {show&&<button onClick={()=>setStep("mode")} style={primary(T.red)}>Continue →</button>}
+              {show&&<button onClick={()=>{setExtraPlatforms(shows[show]?.platforms?.s||[]);setStep("mode");}} style={primary(T.red)}>Continue →</button>}
             </div>}
 
             {/* MODE */}
@@ -377,7 +386,7 @@ export default function App(){
                   <div style={{display:"flex",flexWrap:"wrap",gap:"8px",marginBottom:"16px"}}>
                     {(d.platforms?.p||[]).map(p=><span key={p} style={{padding:"7px 16px",background:`${d.clr}18`,border:`1px solid ${d.clr}55`,borderRadius:"6px",fontSize:"12px",color:d.clr,fontFamily:"'League Spartan',sans-serif",fontWeight:"700",letterSpacing:"1px"}}>✓ {p.toUpperCase()}</span>)}
                   </div>
-                  <div style={{fontSize:"15px",color:T.textSecondary,fontFamily:"'League Spartan',sans-serif",letterSpacing:"2px",marginBottom:"10px"}}>+ ADD FOR THIS EPISODE</div>
+                  <div style={{fontSize:"15px",color:T.textSecondary,fontFamily:"'League Spartan',sans-serif",letterSpacing:"2px",marginBottom:"10px"}}>SECONDARY (pre-selected) · + ADD MORE</div>
                   <div style={{display:"flex",flexWrap:"wrap",gap:"8px"}}>
                     {["YouTube","Instagram","Facebook","TikTok","LinkedIn","X"].filter(p=>!(d.platforms?.p||[]).includes(p)).map(p=>{const on=extraPlatforms.includes(p);return(
                       <button key={p} onClick={()=>setExtraPlatforms(prev=>on?prev.filter(x=>x!==p):[...prev,p])} style={{padding:"7px 16px",background:on?`${d.clr}18`:T.card,border:on?`1px solid ${d.clr}55`:`1px solid ${T.cardBorder}`,borderRadius:"6px",fontSize:"12px",color:on?d.clr:T.textMuted,fontFamily:"'League Spartan',sans-serif",cursor:"pointer",transition:"all .15s",letterSpacing:"1px",fontWeight:on?"700":"400"}}>
