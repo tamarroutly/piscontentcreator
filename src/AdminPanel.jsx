@@ -347,19 +347,45 @@ export function AdminPanel({ shows, onClose, onSaved }) {
       const j = await r.json();
       const text = j.content?.filter(b => b.type === "text").map(b => b.text).join("") || "";
 
+      // More robust field extraction - handles variations in AI output
       function getField(label) {
+        // Try exact match first
         const lines = text.split("\n");
-        const line = lines.find(l => l.startsWith(label + ":"));
-        return line ? line.slice(label.length + 1).trim() : "";
+        for (const line of lines) {
+          const trimmed = line.trim();
+          if (trimmed.startsWith(label + ":")) {
+            return trimmed.slice(label.length + 1).trim();
+          }
+          // Also try case-insensitive
+          if (trimmed.toLowerCase().startsWith(label.toLowerCase() + ":")) {
+            return trimmed.slice(label.length + 1).trim();
+          }
+        }
+        return "";
       }
       function getMultiline(label) {
-        const idx = text.indexOf(label + ":");
-        if (idx === -1) return "";
-        const rest = text.slice(idx + label.length + 1);
-        const nextLabel = rest.search(/\n[A-Z_]+:/);
-        return (nextLabel === -1 ? rest : rest.slice(0, nextLabel)).trim();
+        const lines = text.split("\n");
+        let found = false;
+        const collected = [];
+        for (const line of lines) {
+          if (!found) {
+            if (line.trim().toUpperCase().startsWith(label + ":")) {
+              found = true;
+              const rest = line.slice(line.indexOf(":") + 1).trim();
+              if (rest) collected.push(rest);
+            }
+          } else {
+            // Stop at next label (ALL_CAPS:)
+            if (/^[A-Z_]+:/.test(line.trim())) break;
+            collected.push(line);
+          }
+        }
+        return collected.join("\n").trim();
       }
       function splitBy(str, sep) { return str ? str.split(sep).map(s => s.trim()).filter(Boolean) : []; }
+      
+      // Debug: log what we got
+      console.log("Parsed text preview:", text.substring(0, 500));
 
       setForm(prev => ({
         ...prev,
