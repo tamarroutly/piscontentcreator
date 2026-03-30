@@ -54,7 +54,12 @@ function buildSNTemplate(snElements) {
       case "guest_bio":   return "\nGUEST BIO\n[2-3 sentences about the guest, third person. Guest episodes only — omit for solo.]";
       case "resources":   return "\nRESOURCES & LINKS\n[Episode-specific resources only — omit if none]";
       case "timestamps":  return "\nTIMESTAMPS\n00:00 — Introduction\n[MM:SS] — [Topic]";
-      case "disclaimer":  return "\n[DISCLAIMER]";
+      case "disclaimer":  return e.text ? "\nDISCLAIMER\n" + e.text : "\n[DISCLAIMER]";
+      case "custom_instructions": {
+        const header = e.header || "CUSTOM SECTION";
+        const instructions = e.text || "Generate a custom section based on the transcript.";
+        return "\n" + header.toUpperCase() + "\n[" + instructions + "]";
+      }
       default: return "";
     }
   }).join("\n");

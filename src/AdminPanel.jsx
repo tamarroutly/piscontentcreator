@@ -12,14 +12,15 @@ const LS = { fontFamily: "'League Spartan', sans-serif" };
 const GA = { fontFamily: "'EB Garamond', Georgia, serif" };
 
 const DEFAULT_SN_ELEMENTS = [
-  { id: "hook",        label: "Hook Question",       enabled: true  },
-  { id: "description", label: "Episode Description", enabled: true  },
-  { id: "takeaways",   label: "Key Takeaways",       enabled: true  },
-  { id: "quote",       label: "Notable Quote",       enabled: false },
-  { id: "guest_bio",   label: "Guest Bio",           enabled: false },
-  { id: "resources",   label: "Resources & Links",   enabled: false },
-  { id: "timestamps",  label: "Timestamps",          enabled: false },
-  { id: "disclaimer",  label: "Custom Disclaimer",   enabled: false },
+  { id: "hook",         label: "Hook Question",        enabled: true,  text: "" },
+  { id: "description",  label: "Episode Description",  enabled: true,  text: "" },
+  { id: "takeaways",    label: "Key Takeaways",        enabled: true,  text: "" },
+  { id: "quote",        label: "Notable Quote",        enabled: false, text: "" },
+  { id: "guest_bio",    label: "Guest Bio",            enabled: false, text: "" },
+  { id: "resources",    label: "Resources & Links",    enabled: false, text: "" },
+  { id: "timestamps",   label: "Timestamps",           enabled: false, text: "" },
+  { id: "disclaimer",   label: "Custom Disclaimer",    enabled: false, text: "", hasText: true, textLabel: "Disclaimer text", textPlaceholder: "Enter the disclaimer text to append at the end of show notes..." },
+  { id: "custom_instructions", label: "Custom Instructions", enabled: false, text: "", header: "", hasText: true, hasHeader: true, textLabel: "Instructions for AI", textPlaceholder: "e.g. Identify any spiritual or specialized terms and provide a 1-2 sentence plain-language definition for each.", headerPlaceholder: "e.g. Definitions, Key Terms, Glossary" },
 ];
 
 const DEFAULT_SECTIONS = [
@@ -72,18 +73,42 @@ function SNBuilder({ elements, onChange }) {
     <div>
       <div style={{ fontSize: "14px", color: T.textSecondary, marginBottom: "12px", ...GA }}>Toggle on/off · Drag to reorder</div>
       {elements.map((el, idx) => (
-        <div key={el.id} draggable
-          onDragStart={e => onDragStart(e, idx)}
-          onDragOver={e => onDragOver(e, idx)}
-          onDrop={e => onDrop(e, idx)}
-          onDragEnd={() => { setDragging(null); setDragOver(null); }}
-          style={{ display: "flex", alignItems: "center", gap: "10px", padding: "10px 14px", background: dragOver === idx ? T.coralSoft : T.card, border: "1px solid " + (dragOver === idx ? T.coral : T.cardBorder), borderRadius: "6px", marginBottom: "6px", cursor: "grab", opacity: dragging === idx ? 0.4 : 1 }}>
-          <span style={{ color: T.textSecondary }}>⠿</span>
-          <div onClick={() => toggle(el.id)} style={{ width: "36px", height: "20px", background: el.enabled ? T.coral : T.cardBorder, borderRadius: "10px", position: "relative", cursor: "pointer", flexShrink: 0, transition: "background .2s" }}>
-            <div style={{ position: "absolute", top: "3px", left: el.enabled ? "19px" : "3px", width: "14px", height: "14px", background: "#fff", borderRadius: "50%", transition: "left .2s" }} />
+        <div key={el.id} style={{ marginBottom: "8px" }}>
+          <div draggable
+            onDragStart={e => onDragStart(e, idx)}
+            onDragOver={e => onDragOver(e, idx)}
+            onDrop={e => onDrop(e, idx)}
+            onDragEnd={() => { setDragging(null); setDragOver(null); }}
+            style={{ display: "flex", alignItems: "center", gap: "10px", padding: "10px 14px", background: dragOver === idx ? T.coralSoft : T.card, border: "1px solid " + (dragOver === idx ? T.coral : T.cardBorder), borderRadius: el.enabled && el.hasText ? "6px 6px 0 0" : "6px", cursor: "grab", opacity: dragging === idx ? 0.4 : 1 }}>
+            <span style={{ color: T.textSecondary }}>⠿</span>
+            <div onClick={() => toggle(el.id)} style={{ width: "36px", height: "20px", background: el.enabled ? T.coral : T.cardBorder, borderRadius: "10px", position: "relative", cursor: "pointer", flexShrink: 0, transition: "background .2s" }}>
+              <div style={{ position: "absolute", top: "3px", left: el.enabled ? "19px" : "3px", width: "14px", height: "14px", background: "#fff", borderRadius: "50%", transition: "left .2s" }} />
+            </div>
+            <span style={{ fontSize: "15px", color: el.enabled ? T.text : T.textSecondary, ...LS, fontWeight: el.enabled ? "600" : "400" }}>{el.label}</span>
+            <span style={{ marginLeft: "auto", fontSize: "13px", color: T.textSecondary, ...LS }}>{idx + 1}</span>
           </div>
-          <span style={{ fontSize: "15px", color: el.enabled ? T.text : T.textSecondary, ...LS, fontWeight: el.enabled ? "600" : "400" }}>{el.label}</span>
-          <span style={{ marginLeft: "auto", fontSize: "13px", color: T.textSecondary, ...LS }}>{idx + 1}</span>
+          {el.enabled && el.hasText && (
+            <div style={{ background: T.surface, border: "1px solid " + T.cardBorder, borderTop: "none", borderRadius: "0 0 6px 6px", padding: "12px 14px" }}>
+              {el.hasHeader && (
+                <div style={{ marginBottom: "10px" }}>
+                  <label style={{ fontSize: "11px", letterSpacing: "2px", textTransform: "uppercase", color: T.textMuted, marginBottom: "6px", display: "block", ...LS }}>Section Header</label>
+                  <input
+                    style={{ width: "100%", background: T.card, border: "1px solid " + T.cardBorder, borderRadius: "4px", padding: "8px 12px", color: T.text, fontSize: "14px", outline: "none", boxSizing: "border-box", ...GA }}
+                    placeholder={el.headerPlaceholder || "Section heading..."}
+                    value={el.header || ""}
+                    onChange={e => onChange(elements.map((x, i) => i === idx ? { ...x, header: e.target.value } : x))}
+                  />
+                </div>
+              )}
+              <label style={{ fontSize: "11px", letterSpacing: "2px", textTransform: "uppercase", color: T.textMuted, marginBottom: "6px", display: "block", ...LS }}>{el.textLabel || "Text"}</label>
+              <textarea
+                style={{ width: "100%", background: T.card, border: "1px solid " + T.cardBorder, borderRadius: "4px", padding: "8px 12px", color: T.text, fontSize: "14px", outline: "none", resize: "vertical", minHeight: "80px", boxSizing: "border-box", ...GA, lineHeight: "1.6" }}
+                placeholder={el.textPlaceholder || "Enter text..."}
+                value={el.text || ""}
+                onChange={e => onChange(elements.map((x, i) => i === idx ? { ...x, text: e.target.value } : x))}
+              />
+            </div>
+          )}
         </div>
       ))}
     </div>
