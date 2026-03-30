@@ -45,7 +45,7 @@ export const DEFAULT_SHOWS = {
   "leaving-crazytown": {
     name: "Leaving CrazyTown",
     tag: "Escaping the chaos of entrepreneurship.",
-    hosts: "Mike Michalowicz",
+    hosts: "Finn & Dr. Sarah Michaud",
     clr: "#E67E22", light: "#E67E2220",
     platforms: { p: ["YouTube"], s: ["Apple Podcasts", "Spotify"] },
     isDefault: true
