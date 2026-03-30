@@ -113,26 +113,23 @@ const SUB_HEADERS=/^(KEY TAKEAWAYS|NOTABLE QUOTE|TIMESTAMPS|HASHTAGS|KEYWORDS|IN
 function dlDoc(content,filename){
   const h=`<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
 <head><meta charset="utf-8"><style>
-body{font-family:Georgia,serif;font-size:12pt;line-height:1.8;color:#111;margin:1in}
-h1{font-size:18pt;font-weight:bold;color:#CC0000;margin-top:0}
-.meta{font-size:10pt;color:#666;margin-bottom:20pt;font-family:Arial,sans-serif}
-.sec{font-size:13pt;font-weight:bold;color:#CC0000;margin-top:24pt;margin-bottom:6pt;text-transform:uppercase;border-bottom:2px solid #CC0000;padding-bottom:4pt;font-family:Arial,sans-serif}
-.sub{font-size:11pt;font-weight:bold;color:#111;margin-top:14pt;margin-bottom:4pt;text-transform:uppercase;font-family:Arial,sans-serif}
-.sep{border:none;border-top:1px solid #ddd;margin:12pt 0}
+body{font-family:Georgia,serif;font-size:12pt;line-height:1.8;color:#111;margin:1.2in 1.5in}
+h1{font-size:20pt;font-weight:bold;color:#111;margin-top:0;margin-bottom:4pt}
+.meta{font-size:10pt;color:#888;margin-bottom:28pt;font-family:Arial,sans-serif}
+.sec{font-size:13pt;font-weight:bold;color:#111;margin-top:28pt;margin-bottom:8pt;text-transform:uppercase;font-family:Arial,sans-serif}
+.sub{font-size:11pt;font-weight:bold;color:#111;margin-top:14pt;margin-bottom:4pt;font-family:Arial,sans-serif}
 p{margin:4pt 0}
-a{color:#CC0000}
-ul{margin:4pt 0;padding-left:20pt}
+a{color:#111}
 li{margin:3pt 0}
 </style></head>
 <body>
 <h1>${filename}</h1>
 <div class="meta">Podcast Impact Studio · Content Creator</div>
-<hr class="sep">
 ${content.split("\n").map(l=>{
   const t=l.trim();
   if(!t)return"<p>&nbsp;</p>";
-  if(t==="---")return'<hr class="sep">';
-  if(TOP_SECTIONS.test(t))return`<hr class="sep"><div class="sec">${t}</div>`;
+  if(t==="---")return"";
+  if(TOP_SECTIONS.test(t))return`<div class="sec">${t}</div>`;
   if(SUB_HEADERS.test(t)&&t.split(/\s+/).length<=6)return`<div class="sub">${t}</div>`;
   if(/^[-•]\s/.test(t))return`<li>${linkifyLine(t.replace(/^[-•]\s/,""))}</li>`;
   return`<p>${linkifyLine(l)}</p>`;
