@@ -113,14 +113,14 @@ const SUB_HEADERS=/^(KEY TAKEAWAYS|NOTABLE QUOTE|TIMESTAMPS|HASHTAGS|KEYWORDS|IN
 function dlDoc(content,filename){
   const h=`<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
 <head><meta charset="utf-8"><style>
-body{font-family:Georgia,serif;font-size:12pt;line-height:1.8;color:#111;margin:1.2in 1.5in}
-h1{font-size:20pt;font-weight:bold;color:#111;margin-top:0;margin-bottom:4pt}
-.meta{font-size:10pt;color:#888;margin-bottom:28pt;font-family:Arial,sans-serif}
-.sec{font-size:13pt;font-weight:bold;color:#111;margin-top:28pt;margin-bottom:8pt;text-transform:uppercase;font-family:Arial,sans-serif}
-.sub{font-size:11pt;font-weight:bold;color:#111;margin-top:14pt;margin-bottom:4pt;font-family:Arial,sans-serif}
-p{margin:4pt 0}
+body{font-family:"Times New Roman",serif;font-size:12pt;line-height:1.6;color:#111;margin:1in 1.2in}
+h1{font-size:16pt;font-weight:bold;color:#111;margin-top:0;margin-bottom:4pt;font-family:"Times New Roman",serif}
+.meta{font-size:10pt;color:#888;margin-bottom:20pt;font-family:"Times New Roman",serif}
+.sec{font-size:14pt;font-weight:bold;color:#111;margin-top:20pt;margin-bottom:6pt;text-transform:uppercase;font-family:"Times New Roman",serif}
+.sub{font-size:12pt;font-weight:bold;color:#111;margin-top:12pt;margin-bottom:4pt;font-family:"Times New Roman",serif}
+p{margin:3pt 0;font-size:12pt}
 a{color:#111}
-li{margin:3pt 0}
+li{margin:3pt 0;font-size:12pt}
 </style></head>
 <body>
 <h1>${filename}</h1>
