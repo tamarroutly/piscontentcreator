@@ -316,27 +316,28 @@ export function AdminPanel({ shows, onClose, onSaved }) {
     if (!rawDna.trim()) return;
     setParsing(true); setMsg("");
     try {
-      const prompt = "Extract information from this Show DNA document. Return ONLY these labeled fields, one per line:\n" +
-        "NAME: [show name]\n" +
-        "TAG: [tagline]\n" +
-        "HOSTS: [host names]\n" +
-        "COLOR: [suggest a hex color]\n" +
-        "PLATFORMS_PRIMARY: [comma separated]\n" +
-        "PLATFORMS_SECONDARY: [comma separated]\n" +
-        "VOICE_TRAITS: [tone description]\n" +
-        "VOICE_ENERGY: [like 5/10]\n" +
-        "VOICE_ARCH: [archetype]\n" +
-        "VOICE_ARC: [emotional arc]\n" +
-        "VOICE_PHRASES: [phrases separated by |]\n" +
-        "VOICE_USE: [language to use]\n" +
-        "VOICE_AVOID: [language to avoid]\n" +
-        "AUD_WHO: [audience persona]\n" +
-        "AUD_PAINS: [pains separated by |]\n" +
-        "AUD_LANG: [language they use]\n" +
-        "HASHTAGS: [default hashtags]\n" +
-        "RULES: [content rules]\n" +
-        "BOILERPLATE: [full boilerplate — all links, disclaimers, connect info]\n\n" +
-        "If a field is not found, leave it blank. No other text.\n\nSHOW DNA:\n" +
+      const prompt = "Read this Show DNA document and fill in each field below. " +
+        "Copy the exact format shown. Each field must start at the beginning of a new line with the label in capitals followed by a colon and a space.\n\n" +
+        "NAME: <show name here>\n" +
+        "TAG: <tagline here>\n" +
+        "HOSTS: <host names here>\n" +
+        "COLOR: <hex color like #FF3131>\n" +
+        "PLATFORMS_PRIMARY: <main platforms, comma separated>\n" +
+        "PLATFORMS_SECONDARY: <other platforms, comma separated>\n" +
+        "VOICE_TRAITS: <tone and voice traits>\n" +
+        "VOICE_ENERGY: <energy level like 6/10>\n" +
+        "VOICE_ARCH: <host archetype>\n" +
+        "VOICE_ARC: <emotional arc>\n" +
+        "VOICE_PHRASES: <signature phrases separated by | character>\n" +
+        "VOICE_USE: <language and topics to use>\n" +
+        "VOICE_AVOID: <language and topics to avoid>\n" +
+        "AUD_WHO: <audience persona description>\n" +
+        "AUD_PAINS: <pain points separated by | character>\n" +
+        "AUD_LANG: <language audience uses>\n" +
+        "HASHTAGS: <default hashtags>\n" +
+        "RULES: <content rules>\n" +
+        "BOILERPLATE: <paste the full boilerplate text here including all links and disclaimers>\n\n" +
+        "SHOW DNA DOCUMENT BELOW:\n" +
         rawDna.substring(0, 8000);
 
       const r = await fetch("https://api.anthropic.com/v1/messages", {
