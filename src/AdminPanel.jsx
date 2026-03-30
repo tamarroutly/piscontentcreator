@@ -316,35 +316,42 @@ export function AdminPanel({ shows, onClose, onSaved }) {
     if (!rawDna.trim()) return;
     setParsing(true); setMsg("");
     try {
-      const prompt = "Read this Show DNA document and fill in each field below. " +
-        "Copy the exact format shown. Each field must start at the beginning of a new line with the label in capitals followed by a colon and a space.\n\n" +
-        "NAME: <show name here>\n" +
-        "TAG: <tagline here>\n" +
-        "HOSTS: <host names here>\n" +
-        "COLOR: <hex color like #FF3131>\n" +
-        "PLATFORMS_PRIMARY: <main platforms, comma separated>\n" +
-        "PLATFORMS_SECONDARY: <other platforms, comma separated>\n" +
-        "VOICE_TRAITS: <tone and voice traits>\n" +
-        "VOICE_ENERGY: <energy level like 6/10>\n" +
-        "VOICE_ARCH: <host archetype>\n" +
-        "VOICE_ARC: <emotional arc>\n" +
-        "VOICE_PHRASES: <signature phrases separated by | character>\n" +
-        "VOICE_USE: <language and topics to use>\n" +
-        "VOICE_AVOID: <language and topics to avoid>\n" +
-        "AUD_WHO: <audience persona description>\n" +
-        "AUD_PAINS: <pain points separated by | character>\n" +
-        "AUD_LANG: <language audience uses>\n" +
-        "HASHTAGS: <default hashtags>\n" +
-        "RULES: <content rules>\n" +
-        "BOILERPLATE: <paste the full boilerplate text here including all links and disclaimers>\n\n" +
-        "SHOW DNA DOCUMENT BELOW:\n" +
-        rawDna.substring(0, 8000);
+      const prompt = "Read this Show DNA document and fill in each field. " +
+        "Return ONLY the fields below, one per line, with the label in ALL CAPS followed by a colon and a space, then the value. No other text.\n\n" +
+        "NAME: show name\n" +
+        "TAG: tagline or motto\n" +
+        "HOSTS: host names\n" +
+        "COLOR: suggest a hex color that matches the show vibe\n" +
+        "PLATFORMS_PRIMARY: main platforms comma separated\n" +
+        "PLATFORMS_SECONDARY: other platforms comma separated\n" +
+        "VOICE_TRAITS: tone and voice traits\n" +
+        "VOICE_ENERGY: energy level like 6/10\n" +
+        "VOICE_ARCH: host archetype\n" +
+        "VOICE_ARC: emotional arc\n" +
+        "VOICE_PHRASES: signature phrases separated by the pipe character\n" +
+        "VOICE_USE: language and topics to use\n" +
+        "VOICE_AVOID: language and topics to avoid\n" +
+        "AUD_WHO: audience persona description\n" +
+        "AUD_PAINS: pain points separated by the pipe character\n" +
+        "AUD_LANG: language the audience uses\n" +
+        "HASHTAGS: default hashtags\n" +
+        "RULES: content rules\n" +
+        "BOILERPLATE: full boilerplate text including all links and disclaimers\n\n" +
+        "SHOW DNA:\n" +
+        rawDna.substring(0, 8000).replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, " ");
 
       const r = await fetch("https://api.anthropic.com/v1/messages", {
         method: "POST",
         headers: { "Content-Type": "application/json", "x-api-key": ANTHROPIC_KEY, "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" },
         body: JSON.stringify({ model: "claude-sonnet-4-20250514", max_tokens: 4000, messages: [{ role: "user", content: prompt }] })
       });
+      if (!r.ok) {
+        const errText = await r.text();
+        console.error("API error full:", r.status, errText);
+        setMsg("API error " + r.status + ": " + errText.substring(0, 200));
+        setParsing(false);
+        return;
+      }
       const j = await r.json();
       const text = j.content?.filter(b => b.type === "text").map(b => b.text).join("") || "";
 
