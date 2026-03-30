@@ -110,24 +110,90 @@ function linkifyLine(line){return line.replace(/(https?:\/\/[^\s,)"]+|www\.[^\s,
 const TOP_SECTIONS=/^(\d+\.\s*)?(SEO TITLE|SHOW NOTES|YOUTUBE DESC|SOCIAL MEDIA|QUOTE CARDS|GUEST SHARE|EMAIL NEWS|NEWSLETTER|BLOG (ARTICLE|POST)|PATREON (COMPANION|DISCUSSION|POLL|EXCLUSIVE|POSTS|NEWSLETTER)|CLIPS|SHORTS|REELS)/i;
 const SUB_HEADERS=/^(KEY TAKEAWAYS|NOTABLE QUOTE|TIMESTAMPS|HASHTAGS|KEYWORDS|INSTAGRAM|FACEBOOK|TIKTOK|LINKEDIN|X \(TWITTER\)|QUOTE CARDS|THANK YOU|EPISODE BLURB|SUGGESTED SOCIAL|SUBJECT LINE|PREVIEW TEXT|SOBER SHOT|ELLEVATED ACHIEVERS TAKEAWAY|IN THIS EPISODE|LINKS & RESOURCES|NOTABLE RESOURCES|CONNECT WITH|ABOUT|MUSIC CREDITS|DISCLAIMER)/i;
 
-function dlDoc(content,filename){const h=`<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="utf-8"><style>body{font-family:Calibri,sans-serif;font-size:11pt;line-height:1.6;color:#222;margin:1in}.sec{font-size:14pt;font-weight:bold;color:#FF3131;margin-top:24pt;margin-bottom:8pt;text-transform:uppercase;border-bottom:2px solid #FF3131;padding-bottom:4pt}.sub{font-size:11pt;font-weight:bold;color:#222;margin-top:14pt;margin-bottom:4pt;text-transform:uppercase}.hdr{font-size:16pt;font-weight:bold;color:#FF3131}.meta{font-size:9pt;color:#888;margin-bottom:16pt}.d{border-top:1px solid #eee;margin:10pt 0}a{color:#FF3131}</style></head><body><div class="hdr">${filename}</div><div class="meta">Podcast Impact Studio Content Creator</div><div class="d"></div>${content.split("\n").map(l=>{const t=l.trim();if(!t)return"<br/>";if(t==="---")return'<div class="d"></div>';if(TOP_SECTIONS.test(t))return`<div class="d"></div><div class="sec">${t}</div>`;if(SUB_HEADERS.test(t)&&t.split(/\s+/).length<=6)return`<div class="sub">${t}</div>`;return`<div>${linkifyLine(l)}</div>`;}).join("\n")}</body></html>`;const b=new Blob([h],{type:"application/msword"});const u=URL.createObjectURL(b);const a=document.createElement("a");a.href=u;a.download=`${filename}.doc`;document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(u);}
+function dlDoc(content,filename){
+  const h=`<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
+<head><meta charset="utf-8"><style>
+body{font-family:Georgia,serif;font-size:12pt;line-height:1.8;color:#111;margin:1in}
+h1{font-size:18pt;font-weight:bold;color:#CC0000;margin-top:0}
+.meta{font-size:10pt;color:#666;margin-bottom:20pt;font-family:Arial,sans-serif}
+.sec{font-size:13pt;font-weight:bold;color:#CC0000;margin-top:24pt;margin-bottom:6pt;text-transform:uppercase;border-bottom:2px solid #CC0000;padding-bottom:4pt;font-family:Arial,sans-serif}
+.sub{font-size:11pt;font-weight:bold;color:#111;margin-top:14pt;margin-bottom:4pt;text-transform:uppercase;font-family:Arial,sans-serif}
+.sep{border:none;border-top:1px solid #ddd;margin:12pt 0}
+p{margin:4pt 0}
+a{color:#CC0000}
+ul{margin:4pt 0;padding-left:20pt}
+li{margin:3pt 0}
+</style></head>
+<body>
+<h1>${filename}</h1>
+<div class="meta">Podcast Impact Studio · Content Creator</div>
+<hr class="sep">
+${content.split("\n").map(l=>{
+  const t=l.trim();
+  if(!t)return"<p>&nbsp;</p>";
+  if(t==="---")return'<hr class="sep">';
+  if(TOP_SECTIONS.test(t))return`<hr class="sep"><div class="sec">${t}</div>`;
+  if(SUB_HEADERS.test(t)&&t.split(/\s+/).length<=6)return`<div class="sub">${t}</div>`;
+  if(/^[-•]\s/.test(t))return`<li>${linkifyLine(t.replace(/^[-•]\s/,""))}</li>`;
+  return`<p>${linkifyLine(l)}</p>`;
+}).join("\n")}
+</body></html>`;
+  const b=new Blob([h],{type:"application/msword"});
+  const u=URL.createObjectURL(b);
+  const a=document.createElement("a");
+  a.href=u;a.download=`${filename}.doc`;
+  document.body.appendChild(a);a.click();
+  document.body.removeChild(a);URL.revokeObjectURL(u);
+}
+
+function textToHtml(text){
+  // Convert plain text with URLs to HTML with clickable links and bold headers
+  const lines = text.split("\n");
+  const htmlLines = lines.map(line => {
+    const t = line.trim();
+    if (!t) return "<br>";
+    // Section headers (ALL CAPS lines) -> bold red
+    if (/^(\d+\.\s*)?(SEO TITLE|SHOW NOTES|YOUTUBE DESC|SOCIAL MEDIA|QUOTE CARDS|GUEST SHARE|EMAIL NEWS|NEWSLETTER|BLOG|PATREON|CLIPS|TIMESTAMPS|HASHTAGS|KEYWORDS)/i.test(t)) {
+      return `<p><strong style="color:#CC0000;text-transform:uppercase;">${t}</strong></p>`;
+    }
+    // Sub headers (KEY TAKEAWAYS, NOTABLE QUOTE etc) -> bold
+    if (/^(KEY TAKEAWAYS|NOTABLE QUOTE|GUEST BIO|CONNECT WITH|SUBJECT LINE|TIMESTAMPS|HASHTAGS|KEYWORDS)/i.test(t)) {
+      return `<p><strong>${t}</strong></p>`;
+    }
+    // Separator
+    if (t === "---") return "<hr>";
+    // Linkify URLs
+    const linked = line.replace(/(https?:\/\/[^\s,)"]+|www\.[^\s,)"]+)/g, url => {
+      const href = url.startsWith("http") ? url : "https://" + url;
+      return `<a href="${href}">${url}</a>`;
+    });
+    // Bullets
+    if (/^[-•]\s/.test(t)) return `<p>• ${linked.replace(/^[-•]\s/,"")}</p>`;
+    return `<p>${linked}</p>`;
+  });
+  return htmlLines.join("\n");
+}
 
 function copyText(text){
-  // Use Clipboard API if available (clean plain text, no styling)
-  if(navigator.clipboard && window.isSecureContext){
-    navigator.clipboard.writeText(text).catch(()=>{fallbackCopy(text);});
+  const html = textToHtml(text);
+  if(navigator.clipboard && window.ClipboardItem){
+    const blob = new Blob([html], {type:"text/html"});
+    const plainBlob = new Blob([text], {type:"text/plain"});
+    navigator.clipboard.write([new ClipboardItem({"text/html":blob,"text/plain":plainBlob})]).catch(()=>fallbackCopy(text));
     return;
   }
   fallbackCopy(text);
 }
 function fallbackCopy(text){
-  const el=document.createElement("textarea");
-  el.value=text;
-  el.style.cssText="position:fixed;left:-9999px;top:-9999px;opacity:0;font-family:Arial;background:white;color:black";
+  const el=document.createElement("div");
+  el.contentEditable="true";
+  el.style.cssText="position:fixed;left:-9999px;top:-9999px;opacity:0;white-space:pre";
+  el.innerText=text;
   document.body.appendChild(el);
-  el.focus();el.select();
+  const sel=window.getSelection();sel.removeAllRanges();
+  const range=document.createRange();range.selectNodeContents(el);sel.addRange(range);
   try{document.execCommand("copy");}catch(e){}
-  document.body.removeChild(el);
+  sel.removeAllRanges();document.body.removeChild(el);
 }
 
 function Cp({text}){const[ok,setOk]=useState(false);return <button onClick={()=>{copyText(text);setOk(true);setTimeout(()=>setOk(false),1800);}} style={{padding:"5px 14px",background:ok?T.coralSoft:"transparent",border:`1px solid ${ok?T.coralMid:T.cardBorder}`,borderRadius:"6px",color:ok?T.coral:T.textMuted,fontSize:"12px",cursor:"pointer",fontFamily:"'League Spartan',sans-serif",transition:"all .25s",whiteSpace:"nowrap",letterSpacing:"1px"}}>{ok?"✓ COPIED":"COPY"}</button>;}
