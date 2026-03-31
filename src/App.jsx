@@ -297,7 +297,37 @@ export default function App(){
       try{
         const clipSys=`You are creating social media clip content for ${d.name}.
 
-CRITICAL: Output PLAIN TEXT only. No markdown. No asterisks. No bold. No hashtag # symbols in headers. Section headers in ALL CAPS only.\nShow DNA: ${d.voice?.traits||""}\nTone: ${d.tag}\nPlatforms selected: ${platList}\n\nFor this clip transcript, generate content for EACH selected platform. Use these exact section headers:\n${clipPlatforms.includes("YouTube")?`YOUTUBE CLIP ${i+1}\nSEO Title: [punchy, keyword-rich, under 60 chars — NO show name prefix]\nDescription: [2-3 sentences optimized for YouTube search.]\nHashtags: [8-12 hashtags]\nKeywords: [8-12 comma-separated keywords]`:""}\n${clipPlatforms.includes("Instagram")?`INSTAGRAM REEL ${i+1}\nCaption: [Hook in first line. 100-150 words. End with question or CTA.]\nHashtags: [15-20 hashtags]`:""}\n${clipPlatforms.includes("Facebook")?`FACEBOOK REEL ${i+1}\nPost: [Hook line. 80-120 words. Warm and shareable. CTA at end.]`:""}\n${clipPlatforms.includes("TikTok")?`TIKTOK ${i+1}\nCaption: [Hook first. Under 150 chars. Native TikTok energy.]`:""}\n${clipPlatforms.includes("Spotify")?`SPOTIFY CLIP ${i+1}\nTitle: [Clear, descriptive clip title]\nDescription: [1-2 sentences for Spotify clip description]`:""}\n\nCRITICAL: Write ONLY the sections above. No commentary or extra text.`;
+CRITICAL OUTPUT RULES:
+- PLAIN TEXT only. No markdown, no asterisks, no bold.
+- Hashtags: put the # symbol directly before EACH word. Example: #CancerRisk #Firefighters #ToxicSmoke
+- Title: write ONLY the title text — no "SEO Title:" or "Title:" label before it
+- Description: write ONLY the description text — no "Description:" label before it
+- Never write label words like "Title:", "Description:", "Hashtags:", "Caption:"
+- Section headers in ALL CAPS only
+
+Show Voice: ${d.voice?.traits||""}
+Tone: ${d.tag}
+Platforms: ${platList}
+
+Generate content for EACH platform below using EXACTLY this format — no extra labels:
+${clipPlatforms.includes("YouTube")?`YOUTUBE CLIP ${i+1}
+[title only — punchy, keyword-rich, under 60 chars, no show name]
+[description only — 2-3 sentences optimized for YouTube search]
+[hashtags only — 8-12 tags each starting with #, space separated]
+KEYWORDS
+[8-12 comma-separated keywords]`:""}
+${clipPlatforms.includes("Instagram")?`INSTAGRAM REEL ${i+1}
+[caption — hook in first line, 100-150 words, end with CTA]
+[hashtags — 15-20 tags each starting with #, space separated]`:""}
+${clipPlatforms.includes("Facebook")?`FACEBOOK REEL ${i+1}
+[post — hook line, 80-120 words, CTA at end]`:""}
+${clipPlatforms.includes("TikTok")?`TIKTOK ${i+1}
+[caption — hook first, under 150 chars, include hashtags with # symbol]`:""}
+${clipPlatforms.includes("Spotify")?`SPOTIFY CLIP ${i+1}
+[title only]
+[description — 1-2 sentences]`:""}
+
+Write ONLY the sections above. No labels, no commentary, no extra text.`;
         // Add delay between clips to avoid rate limiting
         if(i>0) await new Promise(res=>setTimeout(res,2000));
         let r, clipAttempt=0;
