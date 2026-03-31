@@ -118,7 +118,7 @@ const SUB_HEADERS=/^(KEY TAKEAWAYS|NOTABLE QUOTE|TIMESTAMPS|HASHTAGS|KEYWORDS|IN
 function dlDoc(content,filename){
   const h=`<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
 <head><meta charset="utf-8"><style>
-body{font-family:"Times New Roman",serif;font-size:12pt;line-height:1.6;color:#111;margin:0.75in}
+body{font-family:"Times New Roman",serif;font-size:12pt;line-height:1.6;color:#111;margin:0.25in}
 h1{font-size:16pt;font-weight:bold;color:#111;margin-top:0;margin-bottom:4pt;font-family:"Times New Roman",serif}
 .meta{font-size:10pt;color:#888;margin-bottom:20pt;font-family:"Times New Roman",serif}
 .sec{font-size:14pt;font-weight:bold;color:#111;margin-top:20pt;margin-bottom:6pt;text-transform:uppercase;font-family:"Times New Roman",serif}
