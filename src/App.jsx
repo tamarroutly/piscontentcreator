@@ -53,8 +53,9 @@ function buildSNTemplate(snElements) {
       case "quote":       return "\nNOTABLE QUOTE\n\"[Exact quote from transcript]\" — [Speaker]";
       case "guest_bio":   return "\nGUEST BIO\n[2-3 sentences about the guest, third person. Guest episodes only — omit for solo.]";
       case "resources":   return "\nRESOURCES & LINKS\n[Episode-specific resources only — omit if none]";
-      case "timestamps":  return "\nTIMESTAMPS\n00:00 — Introduction\n[MM:SS] — [Topic]";
-      case "disclaimer":  return e.text ? "\nDISCLAIMER\n" + e.text : "\n[DISCLAIMER]";
+      case "timestamps":  return (e.scope === "both") ? "\nTIMESTAMPS\n00:00 — Introduction\n[MM:SS] — [Topic]" : "";
+      case "boilerplate": return "\n[INSERT BOILERPLATE HERE]";
+      case "disclaimer":  return e.text ? "\nDISCLAIMER\n" + e.text : "";
       case "custom_instructions": {
         const header = e.header || "CUSTOM SECTION";
         const instructions = e.text || "Generate a custom section based on the transcript.";
@@ -63,6 +64,18 @@ function buildSNTemplate(snElements) {
       default: return "";
     }
   }).join("\n");
+}
+
+function getTimestampsScope(snElements) {
+  if (!snElements) return "youtube";
+  const ts = snElements.find(e => e.id === "timestamps");
+  return ts?.enabled ? (ts.scope || "youtube") : "none";
+}
+
+function hasBoilerplate(snElements) {
+  if (!snElements) return true; // default on
+  const bp = snElements.find(e => e.id === "boilerplate");
+  return bp ? bp.enabled : true;
 }
 
 function buildSections(show, g, snTemplate) {
@@ -79,7 +92,7 @@ function buildSections(show, g, snTemplate) {
   if (enabled.includes("email"))     { out += `${n++}. EMAIL NEWSLETTER\n${tpl.em || "[Subject line, preview text, body, CTA, sign-off]"}\n---\n`; }
   if (enabled.includes("blog"))      { out += `${n++}. BLOG ARTICLE\n${tpl.bl || "800-1500 words. Hook → sections → CTA."}\n---\n`; }
   if (enabled.includes("community")) {
-    const platform = show.community?.platform || "Patreon";
+    const platform = (show.community?.enabled && show.community?.platform) ? show.community.platform : "Patreon";
     const customPlatform = show.community?.customPlatform || platform;
     const name = platform === "Other" ? customPlatform : platform;
     out += `${n++}. ${name.toUpperCase()} COMPANION POST\n[300-500 words. Behind-the-scenes story or bonus content not in the episode. Warm, personal. Written directly to community members as insiders.]\n---\n`;
@@ -96,7 +109,7 @@ function sys(show, k, g, ep, mode, extras=[]) {
   const bp = stripHtml(d.bp||"");
   const urls = (bp.match(/https?:\/\/[^\s,)]+|www\.[^\s,)]+/g)||[]);
   const voice = d.voice||{}; const aud = d.aud||{}; const tpl = d.tpl||{};
-  const base = `You are the content strategist for ${d.name}.\n\nOUTPUT FORMAT:\n- PLAIN TEXT only. Zero markdown.\n- Section headers in ALL CAPS on their own line\n- Separate sections with ---\n- Bullets use - (hyphen)\n\nCRITICAL RULES:\n1. SEO TITLES: Write the title ONLY. Do NOT add the podcast name, a dash, episode number, or any other text after the title.\n2. SHOW NOTES: The very first thing after the SHOW NOTES header must be the hook question. No podcast name, no episode info, no intro text.\n3. BULLETS: KEY TAKEAWAYS must be 3-7 bullet points, each on its own line starting with - (hyphen space). Never write takeaways as a paragraph.\n\nShow: ${d.name} | "${d.tag}" | Host(s): ${d.hosts}\n${g?"GUEST episode — include Guest Share Kit.":"SOLO episode — skip Guest Share Kit."}${ep?` | Episode ${ep}`:""}\n\nVOICE: ${voice.traits||""} | Energy: ${voice.energy||""} | ${voice.arch||""}\nArc: ${voice.arc||""}\nPhrases: ${(voice.phrases||[]).join(" | ")}\nUSE: ${voice.use||""}\nAVOID: ${voice.avoid||""}\n\nAUDIENCE: ${aud.who||""}\nPain: ${(aud.pains||[]).join(" | ")}\nLanguage: ${aud.lang||""}\n\nPLATFORMS: ${[...ap,...extras].join(", ")} | HASHTAGS: ${d.tags||""}\n${extras.length>0?`ADDITIONAL PLATFORMS THIS EPISODE: ${extras.join(", ")} -- generate a dedicated social post for each additional platform listed.`:""}\n\nBOILERPLATE — COPY EXACTLY WORD FOR WORD, DO NOT PARAPHRASE OR REWRITE:\n${bp}\n\nURLs — include exactly:\n${urls.map(u=>`  • ${u}`).join("\n")}\n\nRULES:\n${d.rules||""}\n\n`;
+  const base = `You are the content strategist for ${d.name}.\n\nOUTPUT FORMAT:\n- PLAIN TEXT only. Zero markdown.\n- Section headers in ALL CAPS on their own line\n- Separate sections with ---\n- Bullets use - (hyphen)\n\nCRITICAL RULES:\n1. SEO TITLES: Write the title ONLY. Do NOT add the podcast name, a dash, episode number, or any other text after the title.\n2. SHOW NOTES: The very first thing after the SHOW NOTES header must be the hook question. No podcast name, no episode info, no intro text.\n3. BULLETS: KEY TAKEAWAYS must be 3-7 bullet points, each on its own line starting with - (hyphen space). Never write takeaways as a paragraph.\n\nShow: ${d.name} | "${d.tag}" | Host(s): ${d.hosts}\n${g?"GUEST episode — include Guest Share Kit.":"SOLO episode — skip Guest Share Kit."}${ep?` | Episode ${ep}`:""}\n\nVOICE: ${voice.traits||""} | Energy: ${voice.energy||""} | ${voice.arch||""}\nArc: ${voice.arc||""}\nPhrases: ${(voice.phrases||[]).join(" | ")}\nUSE: ${voice.use||""}\nAVOID: ${voice.avoid||""}\n\nAUDIENCE: ${aud.who||""}\nPain: ${(aud.pains||[]).join(" | ")}\nLanguage: ${aud.lang||""}\n\nPLATFORMS: ${[...ap,...extras].join(", ")} | HASHTAGS: ${d.tags||""}\n${extras.length>0?`ADDITIONAL PLATFORMS THIS EPISODE: ${extras.join(", ")} -- generate a dedicated social post for each additional platform listed.`:""}\n\n${hasBoilerplate(d.snElements) ? `BOILERPLATE — COPY EXACTLY WORD FOR WORD, DO NOT PARAPHRASE OR REWRITE:\\n${bp}\\n\\nURLs — include exactly:\\n${urls.map(u=>`  • ${u}`).join("\\n")}` : "No boilerplate."}\\n\\nTIMESTAMPS RULE: ${getTimestampsScope(d.snElements) === "none" ? "Do not include timestamps anywhere." : getTimestampsScope(d.snElements) === "youtube" ? "Include timestamps in YouTube description ONLY. Do NOT add to show notes." : "Include timestamps in both show notes and YouTube description."}\\n\\nRULES:\n${d.rules||""}\n\n`;
   if(mode==="clips"){return base;}
   const snTpl = buildSNTemplate(d.snElements);
   const sections = buildSections(d, g, snTpl);
@@ -118,7 +131,7 @@ const SUB_HEADERS=/^(KEY TAKEAWAYS|NOTABLE QUOTE|TIMESTAMPS|HASHTAGS|KEYWORDS|IN
 function dlDoc(content,filename){
   const h=`<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
 <head><meta charset="utf-8"><style>
-body{font-family:"Times New Roman",serif;font-size:12pt;line-height:1.6;color:#111;margin:0.25in}
+body{font-family:"Times New Roman",serif;font-size:12pt;line-height:1.6;color:#111;margin:1.25in}
 h1{font-size:16pt;font-weight:bold;color:#111;margin-top:0;margin-bottom:4pt;font-family:"Times New Roman",serif}
 .meta{font-size:10pt;color:#888;margin-bottom:20pt;font-family:"Times New Roman",serif}
 .sec{font-size:14pt;font-weight:bold;color:#111;margin-top:20pt;margin-bottom:6pt;text-transform:uppercase;font-family:"Times New Roman",serif}

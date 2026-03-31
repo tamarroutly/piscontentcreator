@@ -18,7 +18,8 @@ const DEFAULT_SN_ELEMENTS = [
   { id: "quote",        label: "Notable Quote",        enabled: false, text: "" },
   { id: "guest_bio",    label: "Guest Bio",            enabled: false, text: "" },
   { id: "resources",    label: "Resources & Links",    enabled: false, text: "" },
-  { id: "timestamps",   label: "Timestamps",           enabled: false, text: "" },
+  { id: "timestamps",   label: "Timestamps",           enabled: false, text: "", hasScope: true, scope: "youtube" },
+  { id: "boilerplate",  label: "Boilerplate",          enabled: true,  text: "" },
   { id: "disclaimer",   label: "Custom Disclaimer",    enabled: false, text: "", hasText: true, textLabel: "Disclaimer text", textPlaceholder: "Enter the disclaimer text to append at the end of show notes..." },
   { id: "custom_instructions", label: "Custom Instructions", enabled: false, text: "", header: "", hasText: true, hasHeader: true, textLabel: "Instructions for AI", textPlaceholder: "e.g. Identify any spiritual or specialized terms and provide a 1-2 sentence plain-language definition for each.", headerPlaceholder: "e.g. Definitions, Key Terms, Glossary" },
 ];
@@ -87,6 +88,19 @@ function SNBuilder({ elements, onChange }) {
             <span style={{ fontSize: "15px", color: el.enabled ? T.text : T.textSecondary, ...LS, fontWeight: el.enabled ? "600" : "400" }}>{el.label}</span>
             <span style={{ marginLeft: "auto", fontSize: "13px", color: T.textSecondary, ...LS }}>{idx + 1}</span>
           </div>
+          {el.enabled && el.hasScope && (
+            <div style={{ background: T.surface, border: "1px solid " + T.cardBorder, borderTop: "none", borderRadius: "0 0 6px 6px", padding: "12px 14px" }}>
+              <label style={{ fontSize: "11px", letterSpacing: "2px", textTransform: "uppercase", color: T.textMuted, marginBottom: "8px", display: "block", ...LS }}>Include Timestamps In</label>
+              <div style={{ display: "flex", gap: "8px" }}>
+                {[{v:"youtube",l:"YouTube Only"},{v:"both",l:"Show Notes + YouTube"}].map(opt => (
+                  <button key={opt.v} onClick={() => onChange(elements.map((x,i) => i===idx ? {...x, scope: opt.v} : x))}
+                    style={{ padding: "7px 16px", background: (el.scope||"youtube")===opt.v ? T.coralSoft : T.card, border: "1px solid " + ((el.scope||"youtube")===opt.v ? T.coral : T.cardBorder), borderRadius: "6px", color: (el.scope||"youtube")===opt.v ? T.text : T.textSecondary, fontSize: "13px", cursor: "pointer", ...LS, fontWeight: (el.scope||"youtube")===opt.v ? "700" : "400" }}>
+                    {opt.l}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
           {el.enabled && el.hasText && (
             <div style={{ background: T.surface, border: "1px solid " + T.cardBorder, borderTop: "none", borderRadius: "0 0 6px 6px", padding: "12px 14px" }}>
               {el.hasHeader && (
