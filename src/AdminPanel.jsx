@@ -315,7 +315,10 @@ export function AdminPanel({ shows, onClose, onSaved }) {
       tags: s.tags || "",
       bp: s.bp || "",
       rules: s.rules || "",
-      snElements: s.snElements || DEFAULT_SN_ELEMENTS,
+      snElements: DEFAULT_SN_ELEMENTS.map(def => {
+        const saved = (s.snElements || []).find(e => e.id === def.id);
+        return saved ? { ...def, enabled: saved.enabled, text: saved.text || "", header: saved.header || "" } : def;
+      }),
       sections: s.sections || DEFAULT_SECTIONS,
       community: s.community || { platform: "", enabled: false },
     });
