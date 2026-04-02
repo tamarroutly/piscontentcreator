@@ -92,13 +92,12 @@ function buildSections(show, g, snTemplate) {
   if (enabled.includes("email"))     { out += `${n++}. EMAIL NEWSLETTER\n${tpl.em || "[Subject line, preview text, body, CTA, sign-off]"}\n---\n`; }
   if (enabled.includes("blog"))      { out += `${n++}. BLOG ARTICLE\n${tpl.bl || "800-1500 words. Hook → sections → CTA."}\n---\n`; }
   if (enabled.includes("community")) {
-    const platform = (show.community?.enabled && show.community?.platform) ? show.community.platform : "Patreon";
-    const customPlatform = show.community?.customPlatform || platform;
-    const name = platform === "Other" ? customPlatform : platform;
-    out += `${n++}. ${name.toUpperCase()} COMPANION POST\n[300-500 words. Behind-the-scenes story or bonus content not in the episode. Warm, personal. Written directly to community members as insiders.]\n---\n`;
-    out += `${n++}. ${name.toUpperCase()} DISCUSSION PROMPTS\n[5 open-ended discussion questions for the community. Thought-provoking, tied to episode topics.]\n---\n`;
-    out += `${n++}. ${name.toUpperCase()} POLL\n[1 poll question directly related to the episode. 4 options labeled A/B/C/D.]\n---\n`;
-    out += `${n++}. ${name.toUpperCase()} EXCLUSIVE NEWSLETTER\n[200-300 words. Intimate letter written directly to community members. More personal than the public newsletter.]\n---\n`;
+    const platform = show.community?.platform || "Patreon";
+    const name = platform === "Other" ? (show.community?.customPlatform || "Community") : platform;
+    out += `${n++}. ${name.toUpperCase()} COMPANION POST\\n[300-500 words. Behind-the-scenes story or bonus content not in the episode. Warm and personal. Written directly to ${name} members as insiders.]\\n---\\n`;
+    out += `${n++}. ${name.toUpperCase()} DISCUSSION PROMPTS\\n[5 open-ended discussion questions for the ${name} community. Thought-provoking, tied to episode topics.]\\n---\\n`;
+    out += `${n++}. ${name.toUpperCase()} POLL\\n[1 poll question directly related to the episode. 4 options labeled A/B/C/D.]\\n---\\n`;
+    out += `${n++}. ${name.toUpperCase()} EXCLUSIVE NEWSLETTER\\n[200-300 words. Intimate letter written directly to ${name} members. More personal than the public newsletter. Sign off warmly from the host.]\\n---\\n`;
   }
   return out;
 }
@@ -112,7 +111,10 @@ function sys(show, k, g, ep, mode, extras=[]) {
   const base = `You are the content strategist for ${d.name}.\n\nOUTPUT FORMAT:\n- PLAIN TEXT only. Zero markdown.\n- Section headers in ALL CAPS on their own line\n- Separate sections with ---\n- Bullets use - (hyphen)\n\nCRITICAL RULES:\n1. SEO TITLES: Write the title ONLY. Do NOT add the podcast name, a dash, episode number, or any other text after the title.\n2. SHOW NOTES: The very first thing after the SHOW NOTES header must be the hook question. No podcast name, no episode info, no intro text.\n3. BULLETS: KEY TAKEAWAYS must be 3-7 bullet points, each on its own line starting with - (hyphen space). Never write takeaways as a paragraph.\n\nShow: ${d.name} | "${d.tag}" | Host(s): ${d.hosts}\n${g?"GUEST episode — include Guest Share Kit.":"SOLO episode — skip Guest Share Kit."}${ep?` | Episode ${ep}`:""}\n\nVOICE: ${voice.traits||""} | Energy: ${voice.energy||""} | ${voice.arch||""}\nArc: ${voice.arc||""}\nPhrases: ${(voice.phrases||[]).join(" | ")}\nUSE: ${voice.use||""}\nAVOID: ${voice.avoid||""}\n\nAUDIENCE: ${aud.who||""}\nPain: ${(aud.pains||[]).join(" | ")}\nLanguage: ${aud.lang||""}\n\nPLATFORMS: ${[...ap,...extras].join(", ")} | HASHTAGS: ${d.tags||""}\n${extras.length>0?`ADDITIONAL PLATFORMS THIS EPISODE: ${extras.join(", ")} -- generate a dedicated social post for each additional platform listed.`:""}\n\n${hasBoilerplate(d.snElements) ? `BOILERPLATE — COPY EXACTLY WORD FOR WORD, DO NOT PARAPHRASE OR REWRITE:\\n${bp}\\n\\nURLs — include exactly:\\n${urls.map(u=>`  • ${u}`).join("\\n")}` : "No boilerplate."}\\n\\nTIMESTAMPS RULE: ${getTimestampsScope(d.snElements) === "none" ? "Do not include timestamps anywhere." : getTimestampsScope(d.snElements) === "youtube" ? "Include timestamps in YouTube description ONLY. Do NOT add to show notes." : "Include timestamps in both show notes and YouTube description."}\\n\\nRULES:\n${d.rules||""}\n\n`;
   if(mode==="clips"){return base;}
   const snTpl = buildSNTemplate(d.snElements);
+  console.log("DEBUG sections:", JSON.stringify(d.sections));
+  console.log("DEBUG community:", JSON.stringify(d.community));
   const sections = buildSections(d, g, snTpl);
+  console.log("DEBUG built sections preview:", sections.substring(0, 500));
   return base+`Generate the COMPLETE content package in plain text. Use ONLY the sections listed below.
 
 1. SEO TITLE OPTIONS
