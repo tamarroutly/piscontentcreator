@@ -94,10 +94,50 @@ function buildSections(show, g, snTemplate) {
   if (enabled.includes("community")) {
     const platform = show.community?.platform || "Patreon";
     const name = platform === "Other" ? (show.community?.customPlatform || "Community") : platform;
-    out += `${n++}. ${name.toUpperCase()} COMPANION POST\\n[300-500 words. Behind-the-scenes story or bonus content not in the episode. Warm and personal. Written directly to ${name} members as insiders.]\\n---\\n`;
-    out += `${n++}. ${name.toUpperCase()} DISCUSSION PROMPTS\\n[5 open-ended discussion questions for the ${name} community. Thought-provoking, tied to episode topics.]\\n---\\n`;
-    out += `${n++}. ${name.toUpperCase()} POLL\\n[1 poll question directly related to the episode. 4 options labeled A/B/C/D.]\\n---\\n`;
-    out += `${n++}. ${name.toUpperCase()} EXCLUSIVE NEWSLETTER\\n[200-300 words. Intimate letter written directly to ${name} members. More personal than the public newsletter. Sign off warmly from the host.]\\n---\\n`;
+    out += `${n++}. ${name.toUpperCase()} COMPANION POST
+Write a 300-500 word behind-the-scenes companion post for ${name} members. This is exclusive insider content — something that goes deeper than the episode. Warm, personal, direct address to community members. Could be a story the host didn't share on the episode, a personal reflection, or extra context. End with a question or prompt that invites engagement.
+---
+`;
+    out += `${n++}. ${name.toUpperCase()} COMMUNITY FEED PROMPTS
+Write 3 community feed prompts based on specific moments or insights from this episode. Each prompt should:
+- Have a short bold title (e.g. "The Trust Question")
+- Ask a genuine question the community will want to answer
+- Use emoji answer options where appropriate (e.g. 🅰️ 🅱️ 🅲️ 🅳️ or similar)
+- Reference the episode and guest naturally
+- Be conversational, not corporate
+Format each as:
+Prompt [#] — [Title]
+[Question]
+[Emoji options if applicable]
+[1-2 sentences tying it to the episode]
+---
+`;
+    out += `${n++}. ${name.toUpperCase()} POLL IDEAS
+Write 3 poll ideas based on topics from this episode. Each poll should:
+- Ask a direct yes/no or multiple choice question
+- Use colored circle emoji for options: 🔴 🟡 🟢 ⚪
+- Be relevant to the episode topic
+- Include a brief 1-sentence tie-in to the episode
+Format each as:
+Poll [#] — [Topic]
+[Question]
+🔴 [Option A]
+🟡 [Option B]
+🟢 [Option C]
+⚪ [Option D]
+[Episode tie-in line]
+---
+`;
+    out += `${n++}. CONVERSATION STARTERS (Short-Form / Stories / X)
+Write 4 short punchy conversation starters for Stories, X (Twitter), or short-form posts. Each should be:
+- 1-3 sentences max
+- Hook-first — start with the most provocative or interesting point
+- Include a direct quote from the episode where powerful
+- End with a CTA (episode number, "link in bio", "agree or disagree?", etc.)
+- Use relevant emojis naturally
+Number them Starter 1, Starter 2, etc.
+---
+`;
   }
   return out;
 }
