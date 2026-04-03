@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { loadShows, saveShow } from "./lib/shows";
+import { supabase } from "./lib/supabase";
 import { AdminPanel, AdminGate } from "./AdminPanel";
 
 const ANTHROPIC_KEY = import.meta.env.VITE_ANTHROPIC_API_KEY;
@@ -13,12 +14,13 @@ const T = {
 const MODES = [
   { id: "full", icon: "📦", label: "Full Content Package", desc: "Show notes, YouTube, social, newsletter, blog, quote cards" },
   { id: "clips", icon: "✂️", label: "Clips & Shorts", desc: "YouTube Shorts, Instagram Reels, Facebook Reels, TikTok scripts" },
+  { id: "editor", icon: "🎬", label: "Editor Brief", desc: "Intro hook + social clip timestamps for your editor" },
 ];
 
 function strip(t){if(!t)return "";const B=String.fromCharCode(96);const r1=new RegExp(B+"{3}[\\s\\S]*?"+B+"{3}","g");const r2=new RegExp(B+"([^"+B+"]+)"+B,"g");return t.replace(/^#{1,6}\s+/gm,"").replace(/\*\*\*(.*?)\*\*\*/g,"$1").replace(/\*\*(.*?)\*\*/g,"$1").replace(/\*(.*?)\*/g,"$1").replace(/__(.*?)__/g,"$1").replace(r1,"").replace(r2,"$1").replace(/^\s*[-*+]\s+/gm,"- ").replace(/\[([^\]]+)\]\([^)]+\)/g,"$1").replace(/^>\s+/gm,"").replace(/^---+$/gm,"").replace(/\n{3,}/g,"\n\n").trim();}
-function parse(raw){const ps=[{id:"titles",r:[/SEO TITLE/i]},{id:"shownotes",r:[/SHOW NOTES/i]},{id:"youtube",r:[/YOUTUBE DESC/i]},{id:"social",r:[/SOCIAL MEDIA/i]},{id:"quotes",r:[/QUOTE CARDS/i,/PULL QUOTES/i]},{id:"guestkit",r:[/GUEST SHARE/i]},{id:"email",r:[/EMAIL NEWS/i,/^(?!.*PATREON).*NEWSLETTER/i]},{id:"blog",r:[/BLOG ART/i,/BLOG POST/i]},{id:"patreon-companion",r:[/PATREON COMPANION/i]},{id:"patreon-discussion",r:[/PATREON DISCUSSION/i]},{id:"patreon-poll",r:[/PATREON POLL/i]},{id:"patreon-newsletter",r:[/PATREON NEWSLETTER/i,/PATREON EXCLUSIVE/i]},{id:"clips",r:[/CLIPS/i,/SHORTS/i,/REELS/i]}];const c=strip(raw),lines=c.split("\n"),secs=[];let ti=null,id="intro",buf=[];for(const l of lines){let h=false;for(const p of ps){if(p.r.some(r=>r.test(l))){if(buf.length)secs.push({id,title:ti||"Overview",content:buf.join("\n").trim()});ti=l.replace(/^\d+\.\s*/,"").trim();id=p.id;buf=[];h=true;break;}}if(!h)buf.push(l);}if(buf.length)secs.push({id,title:ti||"Content",content:buf.join("\n").trim()});return secs.filter(s=>s.content.length>0);}
+function parse(raw){const ps=[{id:"titles",r:[/SEO TITLE/i]},{id:"shownotes",r:[/SHOW NOTES/i]},{id:"spotify-creators",r:[/SPOTIFY FOR CREATORS/i]},{id:"editor-hooks",r:[/INTRO HOOK REC/i]},{id:"editor-clips",r:[/SOCIAL (MEDIA )?CLIP REC/i,/SOCIAL CLIP REC/i]},{id:"editor-notes",r:[/EDITOR NOTES/i]},{id:"youtube",r:[/YOUTUBE DESC/i]},{id:"social",r:[/SOCIAL MEDIA(?! CLIP)/i]},{id:"quotes",r:[/QUOTE CARDS/i,/PULL QUOTES/i]},{id:"guestkit",r:[/GUEST SHARE/i]},{id:"email",r:[/EMAIL NEWS/i,/^(?!.*(PATREON|CIRCLE|MIGHTY|KAJABI|SKOOL|FACEBOOK GROUP)).*NEWSLETTER/i]},{id:"blog",r:[/BLOG ART/i,/BLOG POST/i]},{id:"community-companion",r:[/COMPANION POST/i]},{id:"community-prompts",r:[/COMMUNITY FEED PROMPTS/i,/DISCUSSION PROMPTS/i]},{id:"community-polls",r:[/POLL IDEAS/i,/(?:PATREON|CIRCLE|MIGHTY|KAJABI|SKOOL|FACEBOOK) POLL/i]},{id:"community-starters",r:[/CONVERSATION STARTERS/i]},{id:"clips",r:[/^\d+\.\s*CLIPS/i,/^\d+\.\s*SHORTS/i,/^\d+\.\s*REELS/i]}];const c=strip(raw),lines=c.split("\n"),secs=[];let ti=null,id="intro",buf=[];for(const l of lines){let h=false;for(const p of ps){if(p.r.some(r=>r.test(l))){if(buf.length)secs.push({id,title:ti||"Overview",content:buf.join("\n").trim()});ti=l.replace(/^\d+\.\s*/,"").trim();id=p.id;buf=[];h=true;break;}}if(!h)buf.push(l);}if(buf.length)secs.push({id,title:ti||"Content",content:buf.join("\n").trim()});return secs.filter(s=>s.content.length>0);}
 
-const SM={titles:{l:"SEO Titles",i:"🎯"},shownotes:{l:"Show Notes",i:"📝"},youtube:{l:"YouTube",i:"▶️"},social:{l:"Social Media",i:"📱"},quotes:{l:"Quotes",i:"💬"},guestkit:{l:"Guest Kit",i:"🎁"},email:{l:"Newsletter",i:"📧"},blog:{l:"Blog",i:"📰"},"patreon-companion":{l:"Patreon Companion Post",i:"📝"},"patreon-discussion":{l:"Patreon Discussion Prompts",i:"💬"},"patreon-poll":{l:"Patreon Poll",i:"📊"},"patreon-newsletter":{l:"Patreon Newsletter",i:"📧"},clips:{l:"Clips & Shorts",i:"✂️"},intro:{l:"Overview",i:"📋"}};
+const SM={titles:{l:"SEO Titles",i:"🎯"},shownotes:{l:"Show Notes",i:"📝"},"spotify-creators":{l:"Spotify for Creators",i:"🎵"},youtube:{l:"YouTube",i:"▶️"},"editor-hooks":{l:"Intro Hook Recommendations",i:"🎬"},"editor-clips":{l:"Social Clip Recommendations",i:"✂️"},"editor-notes":{l:"Editor Notes",i:"📋"},social:{l:"Social Media",i:"📱"},quotes:{l:"Quotes",i:"💬"},guestkit:{l:"Guest Kit",i:"🎁"},email:{l:"Newsletter",i:"📧"},blog:{l:"Blog",i:"📰"},"patreon-companion":{l:"Patreon Companion Post",i:"📝"},"patreon-discussion":{l:"Patreon Discussion Prompts",i:"💬"},"patreon-poll":{l:"Patreon Poll",i:"📊"},"patreon-newsletter":{l:"Patreon Newsletter",i:"📧"},"community-companion":{l:"Community Companion Post",i:"📝"},"community-prompts":{l:"Community Feed Prompts",i:"💬"},"community-polls":{l:"Community Polls",i:"📊"},"community-starters":{l:"Conversation Starters",i:"✨"},clips:{l:"Clips & Shorts",i:"✂️"},intro:{l:"Overview",i:"📋"}};
 const ED=[{id:"titles",l:"SEO Titles"},{id:"shownotes",l:"Show Notes"},{id:"youtube",l:"YouTube"},{id:"social",l:"Social Media"},{id:"guestkit",l:"Guest Kit",g:true},{id:"email",l:"Newsletter"},{id:"blog",l:"Blog"},{id:"quotes",l:"Quotes"},{id:"patreon-companion",l:"Patreon Companion Post",pm:true},{id:"patreon-discussion",l:"Patreon Discussion Prompts",pm:true},{id:"patreon-poll",l:"Patreon Poll",pm:true},{id:"patreon-newsletter",l:"Patreon Newsletter",pm:true},{id:"clips",l:"Clips & Shorts",cm:true}];
 
 function stripHtml(html) {
@@ -52,9 +54,9 @@ function buildSNTemplate(snElements) {
       case "takeaways":   return "\nKEY TAKEAWAYS\n- [Takeaway 1]\n- [Takeaway 2]\n- [Takeaway 3]";
       case "quote":       return "\nNOTABLE QUOTE\n\"[Exact quote from transcript]\" — [Speaker]";
       case "guest_bio":   return "\nGUEST BIO\n[2-3 sentences about the guest, third person. Guest episodes only — omit for solo.]";
-      case "resources":   return "\nRESOURCES & LINKS\n[Episode-specific resources only — omit if none]";
+      case "resources":   return "\nLINKS & RESOURCES\n[Episode-specific resources mentioned in this episode only — books, tools, studies. Omit entirely if none mentioned.]";
       case "timestamps":  return (e.scope === "both") ? "\nTIMESTAMPS\n00:00 — Introduction\n[MM:SS] — [Topic]" : "";
-      case "boilerplate": return "\n[INSERT BOILERPLATE HERE]";
+      case "boilerplate": return "\n[BOILERPLATE — copy exactly as configured]";
       case "disclaimer":  return e.text ? "\nDISCLAIMER\n" + e.text : "";
       case "custom_instructions": {
         const header = e.header || "CUSTOM SECTION";
@@ -79,82 +81,192 @@ function hasBoilerplate(snElements) {
 }
 
 function buildSections(show, g, snTemplate) {
-  const sections = show.sections || [];
-  const enabled = sections.filter(s => s.enabled).map(s => s.id);
-  const tpl = show.tpl || {};
-  let out = "";
-  let n = 1;
-  if (enabled.includes("shownotes")) { out += `${n++}. SHOW NOTES\n${snTemplate || tpl.sn || ""}\n\n[BOILERPLATE]\n---\n`; }
-  if (enabled.includes("youtube"))   { out += `${n++}. YOUTUBE DESCRIPTION\n${tpl.yt || "[HOOK]\n\n[SUMMARY: 2-3 sentences]\n\nTIMESTAMPS\n00:00 — Introduction\n\n[BOILERPLATE]\n\nHASHTAGS\n[hashtags]\n\nKEYWORDS\n[8-12 keywords]"}\n---\n`; }
-  if (enabled.includes("social"))    { out += `${n++}. SOCIAL MEDIA\n${tpl.sm || "[Platform-specific posts for each selected platform]"}\n---\n`; }
-  if (enabled.includes("quotes"))    { out += `${n++}. QUOTE CARDS\n[3-5 quotes under 25 words each, numbered]\n---\n`; }
-  if (g && enabled.includes("guestkit")) { out += `${n++}. GUEST SHARE KIT\n${tpl.gk || "[Thank you note, episode blurb, suggested social caption]"}\n---\n`; }
-  if (enabled.includes("email"))     { out += `${n++}. EMAIL NEWSLETTER\n${tpl.em || "[Subject line, preview text, body, CTA, sign-off]"}\n---\n`; }
-  if (enabled.includes("blog"))      { out += `${n++}. BLOG ARTICLE\n${tpl.bl || "800-1500 words. Hook → sections → CTA."}\n---\n`; }
-  if (enabled.includes("community")) {
-    const platform = show.community?.platform || "Patreon";
-    const name = platform === "Other" ? (show.community?.customPlatform || "Community") : platform;
-    out += `${n++}. ${name.toUpperCase()} COMPANION POST
-Write a 300-500 word behind-the-scenes companion post for ${name} members. This is exclusive insider content — something that goes deeper than the episode. Warm, personal, direct address to community members. Could be a story the host didn't share on the episode, a personal reflection, or extra context. End with a question or prompt that invites engagement.
----
-`;
-    out += `${n++}. ${name.toUpperCase()} COMMUNITY FEED PROMPTS
-Write 3 community feed prompts based on specific moments or insights from this episode. Each prompt should:
-- Have a short bold title (e.g. "The Trust Question")
-- Ask a genuine question the community will want to answer
-- Use emoji answer options where appropriate (e.g. 🅰️ 🅱️ 🅲️ 🅳️ or similar)
-- Reference the episode and guest naturally
-- Be conversational, not corporate
-Format each as:
-Prompt [#] — [Title]
-[Question]
-[Emoji options if applicable]
-[1-2 sentences tying it to the episode]
----
-`;
-    out += `${n++}. ${name.toUpperCase()} POLL IDEAS
-Write 3 poll ideas based on topics from this episode. Each poll should:
-- Ask a direct yes/no or multiple choice question
-- Use colored circle emoji for options: 🔴 🟡 🟢 ⚪
-- Be relevant to the episode topic
-- Include a brief 1-sentence tie-in to the episode
-Format each as:
-Poll [#] — [Topic]
-[Question]
-🔴 [Option A]
-🟡 [Option B]
-🟢 [Option C]
-⚪ [Option D]
-[Episode tie-in line]
----
-`;
-    out += `${n++}. CONVERSATION STARTERS (Short-Form / Stories / X)
-Write 4 short punchy conversation starters for Stories, X (Twitter), or short-form posts. Each should be:
-- 1-3 sentences max
-- Hook-first — start with the most provocative or interesting point
-- Include a direct quote from the episode where powerful
-- End with a CTA (episode number, "link in bio", "agree or disagree?", etc.)
-- Use relevant emojis naturally
-Number them Starter 1, Starter 2, etc.
+  const p = show.platforms || {};
+  const podcast  = p.podcast  || [];
+  const social   = p.social   || [];
+  const community= p.community|| [];
+  const email    = p.email    || [];
+  const blog     = p.blog     || [];
+  const extras   = p.extras   || [];
+
+  let out = ""; let n = 1;
+
+  // SHOW NOTES — always generated
+  out += `${n++}. SHOW NOTES\n${snTemplate || ""}\n\n[BOILERPLATE]\n---\n`;
+
+  // SPOTIFY FOR CREATORS — after show notes, before YouTube
+  if (podcast.includes("Spotify for Creators")) {
+    out += `${n++}. SPOTIFY FOR CREATORS
+Generate interactive engagement content for the Spotify for Creators episode upload. Format exactly as follows:
+
+QUESTIONS FOR LISTENERS (write 3 questions)
+Question 1: [A thought-provoking open-ended question directly tied to this episode's main topic — something listeners will want to answer]
+Question 2: [A personal reflection question — "Have you ever..." or "What's your experience with..."]
+Question 3: [A forward-looking or action question — "What will you try..." or "What's one thing you're taking away..."]
+
+POLL 1
+[Poll question tied to a key episode insight]
+Option A: [answer]
+Option B: [answer]
+Option C: [answer]
+Option D: [answer]
+
+POLL 2
+[Poll question about listener experience or belief related to episode topic]
+Option A: [answer]
+Option B: [answer]
+Option C: [answer]
+Option D: [answer]
+
+POLL 3
+[Poll question about what listeners want to hear more of or what they'll do next]
+Option A: [answer]
+Option B: [answer]
+Option C: [answer]
+Option D: [answer]
 ---
 `;
   }
+
+  // YOUTUBE — if in social platforms, gets full YouTube treatment
+  if (social.includes("YouTube")) {
+    out += `${n++}. YOUTUBE DESCRIPTION\n[HOOK — 1 sentence]\n\n[SUMMARY: 2-3 sentences optimized for YouTube search]\n\nTIMESTAMPS\n00:00 — Introduction\n[MM:SS] — [Topic]\n\n[BOILERPLATE]\n\nHASHTAGS\n[8-12 hashtags with # symbol]\n\nKEYWORDS\n[8-12 comma-separated SEO keywords]\n---\n`;
+  }
+
+  // SOCIAL MEDIA posts — one per selected platform (except YouTube handled above)
+  const socialPosts = social.filter(s => s !== "YouTube");
+  if (socialPosts.length > 0) {
+    out += `${n++}. SOCIAL MEDIA\n`;
+    out += `Generate a paste-ready post for EACH platform listed below. Each post must be formatted EXACTLY as it would appear when posted — with line breaks, spacing, emojis, and hashtags in the right places. Write it so someone can copy and paste it directly with zero editing needed.\n\n`;
+    out += `Use this format for each:\n[PLATFORM NAME] POST:\n[post — formatted exactly as it would appear on that platform]\n\n`;
+    out += `PLATFORM-SPECIFIC FORMAT RULES:\n`;
+    if (socialPosts.includes("Instagram")) out += `INSTAGRAM: Start with a hook line (no hashtags yet). Leave a blank line. Write 3-5 short paragraphs — punchy, personal, conversational. End with a question or CTA. Leave TWO blank lines. Then ALL hashtags together on one line (20-25 tags). Use emojis naturally throughout — not forced, but where they add energy or emphasis.\n`;
+    if (socialPosts.includes("Facebook")) out += `FACEBOOK: Start with a hook or bold opening statement. 2-3 paragraphs, warm and conversational like you're talking to a friend. Can be longer than Instagram. End with a question to spark comments. No hashtags needed, but 2-3 relevant ones are fine. Emojis optional but sparingly.\n`;
+    if (socialPosts.includes("TikTok")) out += `TIKTOK: First line is the HOOK — must stop the scroll. Then 2-3 very short punchy lines. End with a CTA ("Link in bio" or "New episode out now"). 3-5 hashtags max. Use emojis to add energy. Total post under 150 chars ideally.\n`;
+    if (socialPosts.includes("LinkedIn")) out += `LINKEDIN: Open with a bold insight or contrarian statement — no fluff. Short punchy sentences. Use line breaks after every 1-2 sentences for readability. 3-5 paragraphs. End with a thought-provoking question or call to action. 3-5 relevant hashtags at the end. Professional but human — no corporate-speak.\n`;
+    if (socialPosts.includes("X (Twitter)")) out += `X (TWITTER): Under 280 characters. One punchy statement or a quote from the episode. Optionally end with "🎧 Episode [number] out now" or similar. Max 2 hashtags. No fluff.\n`;
+    if (socialPosts.includes("Pinterest")) out += `PINTEREST: Write as a pin description. Benefit-driven opening. 2-3 sentences. Include keywords naturally. End with what they'll learn or get from listening. No hashtags.\n`;
+    if (socialPosts.includes("Threads")) out += `THREADS: Conversational and casual — like texting a friend. 2-4 short paragraphs with line breaks. Can ask a question or share a hot take. No hashtags. Emojis are fine but don't overdo it.\n`;
+    if (socialPosts.includes("Reddit")) out += `REDDIT: Write like a real person posting in a relevant subreddit — no marketing language, no hashtags, no emojis. Lead with genuine value or an interesting insight. Can be longer. End with an open question to spark discussion.\n`;
+    if (socialPosts.includes("Apple Podcasts")) out += `APPLE PODCASTS: 2-3 sentences max. Plain and descriptive. What will the listener learn or feel? No hashtags, no emojis.\n`;
+    if (socialPosts.includes("Spotify")) out += `SPOTIFY: 2-3 casual sentences. Conversational. What makes this episode worth their time? No hashtags.\n`;
+    out += `---\n`;
+  }
+
+  // COMMUNITY content
+  if (community.length > 0) {
+    const name = community[0];
+    out += `${n++}. ${name.toUpperCase()} COMPANION POST
+Write a 300-500 word behind-the-scenes companion post for ${name} members. Exclusive insider content going deeper than the episode. Warm, personal, direct address. End with an engagement question.
+---
+`;
+    out += `${n++}. ${name.toUpperCase()} COMMUNITY FEED PROMPTS
+Write 3 community feed prompts based on specific moments from this episode. Each prompt:
+- Bold title (e.g. "The Trust Question")
+- Genuine question the community will want to answer
+- Emoji answer options where appropriate (e.g. 🅰️ 🅱️ 🅲️ 🅳️)
+- 1-2 sentences tying to the episode
+Format: Prompt [#] — [Title] / [Question] / [Options] / [Episode tie-in]
+---
+`;
+    out += `${n++}. ${name.toUpperCase()} POLL IDEAS
+Write 3 polls based on episode topics. Each poll:
+- Direct question with colored circle emoji options: 🔴 🟡 🟢 ⚪
+- 1-sentence episode tie-in
+Format: Poll [#] — [Topic] / [Question] / 🔴 [A] / 🟡 [B] / 🟢 [C] / ⚪ [D] / [tie-in]
+---
+`;
+    out += `${n++}. CONVERSATION STARTERS
+Write 4 short punchy posts for Stories, X, or short-form. Hook-first, 1-3 sentences, include episode quotes where powerful, end with CTA. Number them Starter 1-4.
+---
+`;
+  }
+
+  // EMAIL NEWSLETTER
+  if (email.includes("Newsletter")) {
+    out += `${n++}. EMAIL NEWSLETTER\n[SUBJECT LINE]\n[PREVIEW TEXT]\n\n[Body: hook, 3-4 key insights from episode, CTA to listen]\n\nFREQUENTLY ASKED QUESTIONS\n[3-5 FAQs based on the episode topic with concise answers]\n---\n`;
+  }
+
+  // BLOG
+  if (blog.includes("Blog Article")) {
+    out += `${n++}. BLOG ARTICLE\n[800-1500 words. SEO-optimized headline. Hook → sections with subheadings → CTA. Include meta description at end.]\n\nFAQ SCHEMA\n[5 FAQs for structured data markup]\n---\n`;
+  }
+
+  // QUOTE CARDS
+  if (extras.includes("Quote Cards")) {
+    out += `${n++}. QUOTE CARDS\n[5 quotes under 25 words each, numbered. Pull exact quotes from transcript where possible.]\n---\n`;
+  }
+
+  // GUEST KIT
+  if (g && extras.includes("Guest Kit")) {
+    out += `${n++}. GUEST SHARE KIT\n[Thank you note from host, episode blurb for guest to share, 2-3 suggested social captions pre-written for guest]\n---\n`;
+  }
+
   return out;
 }
 
-function sys(show, k, g, ep, mode, extras=[]) {
+
+function sys(show, k, g, ep, mode, extras=[], clipCount=5) {
   const d = show; if (!d) return "";
   const ap = [...(d.platforms?.p||[]),...(d.platforms?.s||[])];
   const bp = stripHtml(d.bp||"");
   const urls = (bp.match(/https?:\/\/[^\s,)]+|www\.[^\s,)]+/g)||[]);
   const voice = d.voice||{}; const aud = d.aud||{}; const tpl = d.tpl||{};
-  const base = `You are the content strategist for ${d.name}.\n\nOUTPUT FORMAT:\n- PLAIN TEXT only. Zero markdown.\n- Section headers in ALL CAPS on their own line\n- Separate sections with ---\n- Bullets use - (hyphen)\n\nCRITICAL RULES:\n1. SEO TITLES: Write the title ONLY. Do NOT add the podcast name, a dash, episode number, or any other text after the title.\n2. SHOW NOTES: The very first thing after the SHOW NOTES header must be the hook question. No podcast name, no episode info, no intro text.\n3. BULLETS: KEY TAKEAWAYS must be 3-7 bullet points, each on its own line starting with - (hyphen space). Never write takeaways as a paragraph.\n\nShow: ${d.name} | "${d.tag}" | Host(s): ${d.hosts}\n${g?"GUEST episode — include Guest Share Kit.":"SOLO episode — skip Guest Share Kit."}${ep?` | Episode ${ep}`:""}\n\nVOICE: ${voice.traits||""} | Energy: ${voice.energy||""} | ${voice.arch||""}\nArc: ${voice.arc||""}\nPhrases: ${(voice.phrases||[]).join(" | ")}\nUSE: ${voice.use||""}\nAVOID: ${voice.avoid||""}\n\nAUDIENCE: ${aud.who||""}\nPain: ${(aud.pains||[]).join(" | ")}\nLanguage: ${aud.lang||""}\n\nPLATFORMS: ${[...ap,...extras].join(", ")} | HASHTAGS: ${d.tags||""}\n${extras.length>0?`ADDITIONAL PLATFORMS THIS EPISODE: ${extras.join(", ")} -- generate a dedicated social post for each additional platform listed.`:""}\n\n${hasBoilerplate(d.snElements) ? `BOILERPLATE — COPY EXACTLY WORD FOR WORD, DO NOT PARAPHRASE OR REWRITE:\\n${bp}\\n\\nURLs — include exactly:\\n${urls.map(u=>`  • ${u}`).join("\\n")}` : "No boilerplate."}\\n\\nTIMESTAMPS RULE: ${getTimestampsScope(d.snElements) === "none" ? "Do not include timestamps anywhere." : getTimestampsScope(d.snElements) === "youtube" ? "Include timestamps in YouTube description ONLY. Do NOT add to show notes." : "Include timestamps in both show notes and YouTube description."}\\n\\nRULES:\n${d.rules||""}\n\n`;
+  const base = `You are the content strategist for ${d.name}.\n\nOUTPUT FORMAT:\n- PLAIN TEXT only. Zero markdown. No asterisks. No bold. No italic.\n- ALL section headers and sub-headers must be in ALL CAPS — every single one, no exceptions\n- This includes: KEY TAKEAWAYS, NOTABLE QUOTE, GUEST BIO, LINKS & RESOURCES, TIMESTAMPS, HASHTAGS, KEYWORDS, SUBJECT LINE, PREVIEW TEXT, and any other label\n- Separate major sections with ---\n- Bullets use - (hyphen space)\n\nCRITICAL RULES:\n1. SEO TITLES: Write the title ONLY. Do NOT add the podcast name, a dash, episode number, or any other text after the title.\n2. SHOW NOTES: The very first thing after the SHOW NOTES header must be the hook question. No podcast name, no episode info, no intro text.\n3. BULLETS: KEY TAKEAWAYS must be 3-7 bullet points, each on its own line starting with - (hyphen space). Never write takeaways as a paragraph.\n4. HEADERS: Never use Title Case for any header or label. ALL CAPS only. "Links & Resources" must be written as "LINKS & RESOURCES".\n\nShow: ${d.name} | "${d.tag}" | Host(s): ${d.hosts}\n${g?"GUEST episode — include Guest Share Kit.":"SOLO episode — skip Guest Share Kit."}${ep?` | Episode ${ep}`:""}\n\nVOICE: ${voice.traits||""} | Energy: ${voice.energy||""} | ${voice.arch||""}\nArc: ${voice.arc||""}\nPhrases: ${(voice.phrases||[]).join(" | ")}\nUSE: ${voice.use||""}\nAVOID: ${voice.avoid||""}\n\nAUDIENCE: ${aud.who||""}\nPain: ${(aud.pains||[]).join(" | ")}\nLanguage: ${aud.lang||""}\n\nPLATFORMS: ${[...ap,...extras].join(", ")} | HASHTAGS: ${d.tags||""}\n${extras.length>0?`ADDITIONAL PLATFORMS THIS EPISODE: ${extras.join(", ")} -- generate a dedicated social post for each additional platform listed.`:""}\n\n${hasBoilerplate(d.snElements) ? `BOILERPLATE (copy exactly, no header, no label before it):\\n${bp}\\n\\nURLs — include exactly:\\n${urls.map(u=>`  • ${u}`).join("\\n")}` : "No boilerplate."}\\n\\nTIMESTAMPS RULE: ${getTimestampsScope(d.snElements) === "none" ? "Do not include timestamps anywhere." : getTimestampsScope(d.snElements) === "youtube" ? "Include timestamps in YouTube description ONLY. Do NOT add to show notes." : "Include timestamps in both show notes and YouTube description."}\\n\\nRULES:\n${d.rules||""}\n\n`;
   if(mode==="clips"){return base;}
+  if(mode==="editor"){
+    return base + `
+You are analyzing this episode transcript to create an EDITOR BRIEF for a professional podcast editor.
+
+SHOW DNA CONTEXT:
+Target audience: ${d.aud?.who||""}
+Audience pain points: ${(d.aud?.pains||[]).join(", ")}
+Show voice: ${d.voice?.traits||""}
+What resonates with this audience: ${d.voice?.use||""}
+
+Your job is to find the single best intro hook and the best social clips based on what will land with THIS specific audience.
+
+Generate the following:
+
+---
+
+INTRO HOOK RECOMMENDATIONS
+
+Find the 3 best moments from the transcript to use as a podcast intro hook (spliced in before theme music). These should be 30-90 seconds when spoken. Rank them 1-3 with #1 being your top recommendation.
+
+For each hook, provide:
+
+HOOK #[N] — [RECOMMENDED / ALTERNATE 1 / ALTERNATE 2]
+TIMESTAMP: [approximate time in transcript — e.g. "~14:30" or "around the 22-minute mark"]
+DURATION: [estimated clip length e.g. "~45 seconds"]
+QUOTE: [the exact words from the transcript where this moment starts and ends — copy verbatim]
+WHY THIS WORKS: [2-3 sentences — specifically why this moment will hook THIS show's audience based on their pain points and what they care about]
+AUDIENCE TRIGGER: [the specific emotional hook — e.g. "Relief — listener feels finally understood", "Curiosity — raises a question they've always had", "Validation — confirms what they suspected"]
+
+---
+
+SOCIAL CLIP RECOMMENDATIONS
+
+Find exactly ${clipCount} moments that would make high-performing social media clips (60-90 seconds ideal, up to 3 minutes max). Focus on moments that are self-contained, emotionally resonant, and don't require context from the rest of the episode.
+
+For each clip:
+
+CLIP #[N]
+TIMESTAMP: [approximate start and end time]
+DURATION: [estimated length]
+BEST PLATFORM: [Instagram Reels / TikTok / YouTube Shorts / LinkedIn — pick the ONE best fit and explain why]
+QUOTE: [exact words where clip starts and ends]
+WHY IT PERFORMS: [why this specific moment will stop the scroll — what's the hook, the tension, the payoff]
+SUGGESTED CAPTION HOOK: [one punchy first line for the social caption]
+
+---
+
+EDITOR NOTES
+[Any additional notes for the editor — transitions, moments to watch for, audio quality flags if apparent from transcript, suggested music mood, etc.]
+`;
+  }
   const snTpl = buildSNTemplate(d.snElements);
-  console.log("DEBUG sections:", JSON.stringify(d.sections));
-  console.log("DEBUG community:", JSON.stringify(d.community));
   const sections = buildSections(d, g, snTpl);
-  console.log("DEBUG built sections preview:", sections.substring(0, 500));
   return base+`Generate the COMPLETE content package in plain text. Use ONLY the sections listed below.
 
 1. SEO TITLE OPTIONS
@@ -167,7 +279,7 @@ function revSys(show){const d=show;if(!d)return "";return `Content strategist fo
 
 function linkifyLine(line){return line.replace(/(https?:\/\/[^\s,)"]+|www\.[^\s,)"]+|[a-zA-Z0-9][a-zA-Z0-9\-]*\.(?:com|org|net|io|co)(?:\/[^\s,)"]*)?)/g,url=>{const href=url.startsWith("http")?url:"https://"+url;return`<a href="${href}" style="color:#FF3131">${url}</a>`;});}
 
-const TOP_SECTIONS=/^(\d+\.\s*)?(SEO TITLE|SHOW NOTES|YOUTUBE DESC|SOCIAL MEDIA|QUOTE CARDS|GUEST SHARE|EMAIL NEWS|NEWSLETTER|BLOG (ARTICLE|POST)|PATREON (COMPANION|DISCUSSION|POLL|EXCLUSIVE|POSTS|NEWSLETTER)|CLIPS|SHORTS|REELS)/i;
+const TOP_SECTIONS=/^(\d+\.\s*)?(SEO TITLE|SHOW NOTES|SPOTIFY FOR CREATORS|INTRO HOOK|SOCIAL CLIP|EDITOR NOTES|YOUTUBE DESC|SOCIAL MEDIA|QUOTE CARDS|GUEST SHARE|EMAIL NEWS|NEWSLETTER|BLOG (ARTICLE|POST)|PATREON (COMPANION|DISCUSSION|POLL|EXCLUSIVE|POSTS|NEWSLETTER)|CLIPS|SHORTS|REELS)/i;
 const SUB_HEADERS=/^(KEY TAKEAWAYS|NOTABLE QUOTE|TIMESTAMPS|HASHTAGS|KEYWORDS|INSTAGRAM|FACEBOOK|TIKTOK|LINKEDIN|X \(TWITTER\)|QUOTE CARDS|THANK YOU|EPISODE BLURB|SUGGESTED SOCIAL|SUBJECT LINE|PREVIEW TEXT|SOBER SHOT|ELLEVATED ACHIEVERS TAKEAWAY|IN THIS EPISODE|LINKS & RESOURCES|NOTABLE RESOURCES|CONNECT WITH|ABOUT|MUSIC CREDITS|DISCLAIMER)/i;
 
 function dlDoc(content,filename){
@@ -210,7 +322,7 @@ function textToHtml(text){
     const t = line.trim();
     if (!t) return "<br>";
     // Section headers (ALL CAPS lines) -> bold red
-    if (/^(\d+\.\s*)?(SEO TITLE|SHOW NOTES|YOUTUBE DESC|SOCIAL MEDIA|QUOTE CARDS|GUEST SHARE|EMAIL NEWS|NEWSLETTER|BLOG|PATREON|CLIPS|TIMESTAMPS|HASHTAGS|KEYWORDS)/i.test(t)) {
+    if (/^(\d+\.\s*)?(SEO TITLE|SHOW NOTES|SPOTIFY FOR CREATORS|YOUTUBE DESC|SOCIAL MEDIA|QUOTE CARDS|GUEST SHARE|EMAIL NEWS|NEWSLETTER|BLOG|PATREON|CLIPS|TIMESTAMPS|HASHTAGS|KEYWORDS)/i.test(t)) {
       return `<p><strong style="color:#CC0000;text-transform:uppercase;">${t}</strong></p>`;
     }
     // Sub headers (KEY TAKEAWAYS, NOTABLE QUOTE etc) -> bold
@@ -255,7 +367,7 @@ function fallbackCopy(text){
 
 function Cp({text}){const[ok,setOk]=useState(false);return <button onClick={()=>{copyText(text);setOk(true);setTimeout(()=>setOk(false),1800);}} style={{padding:"5px 14px",background:ok?T.coralSoft:"transparent",border:`1px solid ${ok?T.coralMid:T.cardBorder}`,borderRadius:"6px",color:ok?T.coral:T.textMuted,fontSize:"12px",cursor:"pointer",fontFamily:"'League Spartan',sans-serif",transition:"all .25s",whiteSpace:"nowrap",letterSpacing:"1px"}}>{ok?"✓ COPIED":"COPY"}</button>;}
 
-function isTopSection(line){const t=line.trim();return /^(\d+\.\s*)?(SEO TITLE|SHOW NOTES|YOUTUBE DESC|SOCIAL MEDIA|QUOTE CARDS|GUEST SHARE|EMAIL NEWS|NEWSLETTER|BLOG (ARTICLE|POST)|PATREON|CLIPS|SHORTS|REELS)/i.test(t);}
+function isTopSection(line){const t=line.trim();return /^(\d+\.\s*)?(SEO TITLE|SHOW NOTES|SPOTIFY FOR CREATORS|INTRO HOOK|SOCIAL CLIP|EDITOR NOTES|YOUTUBE DESC|SOCIAL MEDIA|QUOTE CARDS|GUEST SHARE|EMAIL NEWS|NEWSLETTER|BLOG (ARTICLE|POST)|PATREON|CLIPS|SHORTS|REELS)/i.test(t);}
 function isSubHeader(line){const t=line.trim();if(!t||t.length<3)return false;if(/^[-\u2022*\d"(@]/.test(t))return false;if(isTopSection(line))return false;if(t.split(/\s+/).length>8)return false;const allCaps=/^[A-Z][A-Z\s&()\u00ae\u2122\/\-:\.]+$/.test(t)&&t.length>3;const titleCase=/^[A-Z][a-zA-Z]*(\s(&|[A-Z][a-zA-Z]*))*:?$/.test(t)&&t.length>3&&t.split(/\s+/).length<=6;return allCaps||titleCase;}
 
 function renderContent(text){
@@ -312,6 +424,21 @@ export default function App(){
   const[dragging,setDragging]=useState(false);
   const[extraPlatforms,setExtraPlatforms]=useState([]);
   const[clipCount,setClipCount]=useState(3);
+  const[editorClipCount,setEditorClipCount]=useState(5);
+  const[descriptProjectId,setDescriptProjectId]=useState("");
+  const[descriptApiKey,setDescriptApiKey]=useState("");
+
+  useEffect(()=>{
+    async function loadGlobalSettings(){
+      try{
+        const {data}=await supabase.from("settings").select("value").eq("key","global").single();
+        if(data?.value?.descriptApiKey) setDescriptApiKey(data.value.descriptApiKey);
+      }catch{}
+    }
+    loadGlobalSettings();
+  },[]);
+  const[descriptStatus,setDescriptStatus]=useState("");
+  const[descriptSending,setDescriptSending]=useState(false);
   const[clipTexts,setClipTexts]=useState(Array(10).fill(""));
   const[clipResults,setClipResults]=useState([]);
   const[clipPlatforms,setClipPlatforms]=useState(["YouTube"]);
@@ -392,7 +519,7 @@ Write ONLY the sections above. No labels, no commentary, no extra text.`;
     try{
       let r,attempt=0;
       while(attempt<3){
-        r=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json","x-api-key":ANTHROPIC_KEY,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:8000,system:sys(d,show,guest,ep,mode,extraPlatforms),messages:[{role:"user",content:`Generate the COMPLETE content package in plain text.\n\nTRANSCRIPT:\n${tx.substring(0,90000)}`}]})});
+        r=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json","x-api-key":ANTHROPIC_KEY,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:mode==="editor"?4000:8000,system:sys(d,show,guest,ep,mode,extraPlatforms,editorClipCount),messages:[{role:"user",content:mode==="editor"?`Analyze this transcript carefully and generate the Editor Brief as instructed.\n\nTRANSCRIPT:\n${tx.substring(0,90000)}`:`Generate the COMPLETE content package in plain text.\n\nTRANSCRIPT:\n${tx.substring(0,90000)}`}]})});
         if((r.status===529||r.status===503)&&attempt<2){attempt++;await new Promise(res=>setTimeout(res,4000*attempt));continue;}
         if(r.status===529||r.status===503){setErr("⏳ Anthropic is overloaded right now. Wait 30 seconds and try again.");setStep("input");setBusy(false);return;}
         break;
@@ -423,6 +550,55 @@ Write ONLY the sections above. No labels, no commentary, no extra text.`;
   const field={width:"100%",background:T.surface,border:`1px solid ${T.cardBorder}`,borderRadius:"8px",padding:"14px 18px",color:T.text,fontSize:"15px",fontFamily:"'EB Garamond',Georgia,serif",outline:"none",boxSizing:"border-box"};
   const primary=c=>({width:"100%",padding:"16px",background:c||T.coral,border:"none",borderRadius:"8px",color:"#fff",fontSize:"16px",fontWeight:"700",cursor:"pointer",letterSpacing:"2px",fontFamily:"'League Spartan',sans-serif",textTransform:"uppercase",marginTop:"20px"});
   const ghost={padding:"9px 18px",background:"transparent",border:`1px solid ${T.cardBorder}`,borderRadius:"6px",color:T.textMuted,fontSize:"14px",cursor:"pointer",fontFamily:"'League Spartan',sans-serif",letterSpacing:"1.5px",textTransform:"uppercase"};
+
+  async function sendToDescript(clipSections) {
+    let apiKey = descriptApiKey.trim();
+    if (!apiKey) {
+      // Try fetching from Supabase as fallback
+      try {
+        const {data} = await supabase.from("settings").select("value").eq("key","global").single();
+        apiKey = data?.value?.descriptApiKey || "";
+        if (apiKey) setDescriptApiKey(apiKey);
+      } catch {}
+    }
+    if (!descriptProjectId.trim()) {
+      setDescriptStatus("Please enter your Descript Project ID.");
+      return;
+    }
+    if (!apiKey) {
+      setDescriptStatus("No Descript API key found. Go to Admin → Settings to add it.");
+      return;
+    }
+    setDescriptSending(true);
+    setDescriptStatus("Sending clip instructions to Descript...");
+    try {
+      // Build agent prompt from clip timestamps
+      const clipLines = clipSections.split("\n").filter(l =>
+        l.includes("TIMESTAMP:") || l.includes("CLIP #") || l.includes("DURATION:")
+      ).join("\n");
+      const agentPrompt = `Create highlights from these timestamps. For each clip, add a marker or comment at the start timestamp so the editor can find them easily:\n\n${clipLines}\n\nLabel each one as CLIP 1, CLIP 2, etc.`;
+
+      const r = await fetch("https://api.descript.com/v2/projects/" + descriptProjectId.trim() + "/agent", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer " + apiKey
+        },
+        body: JSON.stringify({ prompt: agentPrompt })
+      });
+      if (!r.ok) {
+        const err = await r.text();
+        setDescriptStatus("Descript error: " + err.substring(0, 150));
+      } else {
+        const j = await r.json();
+        setDescriptStatus("Sent! Job ID: " + (j.job_id || "submitted") + " — check Descript for the highlighted clips.");
+      }
+    } catch(e) {
+      setDescriptStatus("Error: " + e.message);
+    } finally {
+      setDescriptSending(false);
+    }
+  }
 
   return(
     <div style={{minHeight:"100vh",width:"100%",background:T.bg,color:T.text,display:"flex",flexDirection:"column"}}>
@@ -478,7 +654,7 @@ Write ONLY the sections above. No labels, no commentary, no extra text.`;
                   ))}
                 </div>
               )}
-              {show&&<button onClick={()=>{setExtraPlatforms(shows[show]?.platforms?.s||[]);setStep("mode");}} style={primary(T.red)}>Continue →</button>}
+              {show&&<button onClick={()=>{setStep("mode");}} style={primary(T.red)}>Continue →</button>}
             </div>}
 
             {/* MODE */}
@@ -499,7 +675,7 @@ Write ONLY the sections above. No labels, no commentary, no extra text.`;
                   </div>
                 ))}
               </div>
-              {mode&&<button onClick={()=>setStep("configure")} style={primary(T.red)}>Continue →</button>}
+              {mode&&<button onClick={()=>setStep(mode==="editor"?"input":"configure")} style={primary(T.red)}>Continue →</button>}
             </div>}
 
             {/* CONFIGURE */}
@@ -536,16 +712,11 @@ Write ONLY the sections above. No labels, no commentary, no extra text.`;
               ):(
                 <div style={{marginBottom:"20px"}}>
                   <label style={lbl}>Platforms</label>
-                  <div style={{display:"flex",flexWrap:"wrap",gap:"8px",marginBottom:"16px"}}>
-                    {(d.platforms?.p||[]).map(p=><span key={p} style={{padding:"7px 16px",background:`${d.clr}18`,border:`1px solid ${d.clr}55`,borderRadius:"6px",fontSize:"12px",color:d.clr,fontFamily:"'League Spartan',sans-serif",fontWeight:"700",letterSpacing:"1px"}}>✓ {p.toUpperCase()}</span>)}
-                  </div>
-                  <div style={{fontSize:"15px",color:T.textSecondary,fontFamily:"'League Spartan',sans-serif",letterSpacing:"2px",marginBottom:"10px"}}>SECONDARY (pre-selected) · + ADD MORE</div>
+                  <div style={{fontSize:"14px",color:T.textSecondary,fontFamily:"'EB Garamond',serif",fontStyle:"italic",marginBottom:"8px"}}>Configured in Admin — generating content for all selected platforms</div>
                   <div style={{display:"flex",flexWrap:"wrap",gap:"8px"}}>
-                    {["YouTube","Instagram","Facebook","TikTok","LinkedIn","X"].filter(p=>!(d.platforms?.p||[]).includes(p)).map(p=>{const on=extraPlatforms.includes(p);return(
-                      <button key={p} onClick={()=>setExtraPlatforms(prev=>on?prev.filter(x=>x!==p):[...prev,p])} style={{padding:"7px 16px",background:on?`${d.clr}18`:T.card,border:on?`1px solid ${d.clr}55`:`1px solid ${T.cardBorder}`,borderRadius:"6px",fontSize:"12px",color:on?d.clr:T.textMuted,fontFamily:"'League Spartan',sans-serif",cursor:"pointer",transition:"all .15s",letterSpacing:"1px",fontWeight:on?"700":"400"}}>
-                        {on?"✓ ":""}{p.toUpperCase()}
-                      </button>
-                    );})}
+                    {[...(d.platforms?.social||[]),...(d.platforms?.podcast||[]),...(d.platforms?.community||[]),...(d.platforms?.email||[]),...(d.platforms?.blog||[]),...(d.platforms?.extras||[])].map(p=>(
+                      <span key={p} style={{padding:"6px 14px",background:`${d.clr}18`,border:`1px solid ${d.clr}44`,borderRadius:"6px",fontSize:"12px",color:d.clr,fontFamily:"'League Spartan',sans-serif",fontWeight:"600",letterSpacing:"1px"}}>✓ {p.toUpperCase()}</span>
+                    ))}
                   </div>
                 </div>
               )}
@@ -588,10 +759,21 @@ Write ONLY the sections above. No labels, no commentary, no extra text.`;
               ):(
                 <>
                   <div style={{marginBottom:"32px"}}>
-                    <h1 style={{fontSize:"48px",fontWeight:"700",color:T.text,margin:"0 0 8px",letterSpacing:"-0.5px",fontFamily:"'League Spartan',sans-serif"}}>Add the transcript</h1>
-                    <p style={{fontSize:"17px",color:T.textMuted,margin:0,fontFamily:"'League Spartan',sans-serif",letterSpacing:"1px"}}>{d.name.toUpperCase()} · {(MODES.find(m=>m.id===mode)?.label||"").toUpperCase()}{mode!=="clips"?` · ${guest?"GUEST":"SOLO"}`:""}{ ep?` · EP ${ep}`:""}</p>
+                    <h1 style={{fontSize:"48px",fontWeight:"700",color:T.text,margin:"0 0 8px",letterSpacing:"-0.5px",fontFamily:"'League Spartan',sans-serif"}}>{mode==="editor"?"Paste the raw transcript":"Add the transcript"}</h1>
+                    <p style={{fontSize:"17px",color:T.textMuted,margin:0,fontFamily:"'League Spartan',sans-serif",letterSpacing:"1px"}}>{mode==="editor"?d.name.toUpperCase()+" · EDITOR BRIEF":`${d.name.toUpperCase()} · ${(MODES.find(m=>m.id===mode)?.label||"").toUpperCase()}${mode!=="clips"?` · ${guest?"GUEST":"SOLO"}`:""}${ep?` · EP ${ep}`:""}`}</p>
                   </div>
                   {err&&<div style={{background:"#D94F4F18",border:"1px solid #D94F4F44",borderRadius:"8px",padding:"12px 16px",color:"#F09090",fontSize:"14px",marginBottom:"16px",fontFamily:"'League Spartan',sans-serif"}}>{err}</div>}
+                  {mode==="editor"&&<div style={{marginBottom:"24px"}}>
+                    <label style={lbl}>How many clip suggestions?</label>
+                    <div style={{display:"flex",flexWrap:"wrap",gap:"8px"}}>
+                      {[3,4,5,6,7,8,9,10].map(n=>(
+                        <button key={n} onClick={()=>setEditorClipCount(n)}
+                          style={{padding:"10px 20px",background:editorClipCount===n?T.coral:T.card,border:"1px solid "+(editorClipCount===n?T.coral:T.cardBorder),borderRadius:"6px",color:editorClipCount===n?"#fff":T.textSecondary,fontSize:"15px",fontWeight:editorClipCount===n?"700":"400",cursor:"pointer",fontFamily:"'League Spartan',sans-serif",letterSpacing:"1px",transition:"all .15s"}}>
+                          {n}
+                        </button>
+                      ))}
+                    </div>
+                  </div>}
                   <div onDragOver={e=>{e.preventDefault();setDragging(true);}} onDragLeave={()=>setDragging(false)} onDrop={handleDrop} style={{border:`1px dashed ${dragging?T.coral:T.cardBorder}`,borderRadius:"8px",padding:"32px",textAlign:"center",marginBottom:"16px",background:dragging?T.coralSoft:T.card,transition:"all .2s",cursor:"pointer"}} onClick={()=>fileRef.current?.click()}>
                     <input ref={fileRef} type="file" accept=".txt,.md" style={{display:"none"}} onChange={handleFileInput}/>
                     <div style={{fontSize:"24px",marginBottom:"8px"}}>{dragging?"📥":"📄"}</div>
@@ -599,7 +781,7 @@ Write ONLY the sections above. No labels, no commentary, no extra text.`;
                     <div style={{fontSize:"12px",color:T.textMuted,fontFamily:"'League Spartan',sans-serif",letterSpacing:"1px"}}>OR CLICK TO BROWSE · .TXT FILES</div>
                   </div>
                   <div style={{textAlign:"center",fontSize:"12px",color:T.textMuted,marginBottom:"16px",fontFamily:"'League Spartan',sans-serif",letterSpacing:"1px"}}>— OR PASTE BELOW —</div>
-                  <textarea style={{...field,minHeight:"220px",lineHeight:"1.7",resize:"vertical"}} placeholder="Paste the full episode transcript here..." value={tx} onChange={e=>setTx(e.target.value)}/>
+                  <textarea style={{...field,minHeight:"220px",lineHeight:"1.7",resize:"vertical"}} placeholder={mode==="editor"?"Paste the raw transcript here — include timestamps if available (e.g. from Descript or Rev). The more accurate the timestamps, the better the clip suggestions...":"Paste the full episode transcript here..."} value={tx} onChange={e=>setTx(e.target.value)}/>
                   {tx.length>0&&<div style={{fontSize:"15px",color:T.textMuted,marginTop:"6px",fontFamily:"'League Spartan',sans-serif",letterSpacing:"1px"}}>{Math.round(tx.split(/\s+/).length).toLocaleString()} WORDS</div>}
                   <button onClick={gen} disabled={!tx.trim()} style={{...primary(T.red),opacity:tx.trim()?1:.35}}>Generate {MODES.find(m=>m.id===mode)?.label} →</button>
                 </>
@@ -643,10 +825,25 @@ Write ONLY the sections above. No labels, no commentary, no extra text.`;
               ):(
                 <>
                   <div>{secs.map((s,i)=><Sec key={s.id+i} s={s} clr={clr}/>)}</div>
-                  <div style={{display:"flex",gap:"10px",marginTop:"16px"}}>
+                  <div style={{display:"flex",gap:"10px",marginTop:"16px",flexWrap:"wrap"}}>
                     <button onClick={()=>setEditing(!editing)} style={{flex:1,padding:"13px",background:editing?T.coralSoft:T.card,border:`1px solid ${editing?T.coralMid:T.cardBorder}`,borderRadius:"8px",color:editing?T.coral:T.textSecondary,fontSize:"14px",cursor:"pointer",fontFamily:"'League Spartan',sans-serif",letterSpacing:"1.5px",textTransform:"uppercase",transition:"all .2s"}}>{editing?"CLOSE EDITOR":"✏️  REVISE A SECTION"}</button>
-                    <button onClick={()=>{dlDoc(raw,`${d?.name}${ep?` — Ep ${ep}`:""} Content Package`);setDlOk(true);setTimeout(()=>setDlOk(false),2500);}} style={{flex:1,padding:"13px",background:dlOk?T.coralSoft:T.card,border:`1px solid ${dlOk?T.coralMid:T.cardBorder}`,borderRadius:"8px",color:dlOk?T.coral:T.textSecondary,fontSize:"14px",cursor:"pointer",fontFamily:"'League Spartan',sans-serif",letterSpacing:"1.5px",textTransform:"uppercase",transition:"all .2s"}}>{dlOk?"✓ DOWNLOADED":"📄  DOWNLOAD WORD DOC"}</button>
+                    {mode!=="editor"&&<button onClick={()=>{dlDoc(raw,`${d?.name}${ep?` — Ep ${ep}`:""} Content Package`);setDlOk(true);setTimeout(()=>setDlOk(false),2500);}} style={{flex:1,padding:"13px",background:dlOk?T.coralSoft:T.card,border:`1px solid ${dlOk?T.coralMid:T.cardBorder}`,borderRadius:"8px",color:dlOk?T.coral:T.textSecondary,fontSize:"14px",cursor:"pointer",fontFamily:"'League Spartan',sans-serif",letterSpacing:"1.5px",textTransform:"uppercase",transition:"all .2s"}}>{dlOk?"✓ DOWNLOADED":"📄  DOWNLOAD WORD DOC"}</button>}
                   </div>
+                  {mode==="editor"&&<div style={{background:T.card,border:"1px solid "+T.cardBorder,borderRadius:"10px",padding:"18px 20px",marginTop:"14px"}}>
+                    <div style={{fontSize:"13px",color:T.coral,letterSpacing:"2px",fontFamily:"'League Spartan',sans-serif",marginBottom:"12px",fontWeight:"700"}}>🎬 SEND CLIPS TO DESCRIPT</div>
+                    <div style={{fontSize:"13px",color:T.textSecondary,fontFamily:"'EB Garamond',Georgia,serif",fontStyle:"italic",marginBottom:"12px"}}>{descriptApiKey?"✓ API key loaded from Admin settings.":"⚠ Set your Descript API key in Admin → Settings first."} Paste the Project ID from your Descript URL to highlight clips.</div>
+                    <div style={{display:"flex",gap:"8px",marginBottom:"8px",flexWrap:"wrap"}}>
+                      <input value={descriptProjectId} onChange={e=>setDescriptProjectId(e.target.value)} placeholder="Project ID (from Descript URL)"
+                        style={{flex:1,minWidth:"160px",background:T.surface,border:"1px solid "+T.cardBorder,borderRadius:"6px",padding:"10px 12px",color:T.text,fontSize:"13px",outline:"none",fontFamily:"monospace"}}/>
+                      <button onClick={()=>{const clipSec=secs.find(s=>s.id==="editor-clips");sendToDescript(clipSec?.content||raw);}}
+                        disabled={descriptSending||!descriptProjectId.trim()}
+                        style={{padding:"10px 20px",background:descriptSending||!descriptProjectId.trim()?"#555":T.coral,border:"none",borderRadius:"6px",color:"#fff",fontSize:"13px",fontWeight:"700",cursor:descriptSending||!descriptProjectId.trim()?"not-allowed":"pointer",fontFamily:"'League Spartan',sans-serif",letterSpacing:"1px",whiteSpace:"nowrap"}}>
+                        {descriptSending?"Sending...":"Send to Descript →"}
+                      </button>
+                    </div>
+                    {descriptStatus&&<div style={{fontSize:"13px",color:descriptStatus.startsWith("Sent")||descriptStatus.startsWith("Job")?"#52B788":"#F09090",fontFamily:"monospace",marginTop:"6px"}}>{descriptStatus}</div>}
+                    <div style={{fontSize:"11px",color:T.textMuted,fontFamily:"'League Spartan',sans-serif",letterSpacing:"1px",marginTop:"8px"}}>API KEY: Settings → API Tokens in Descript · PROJECT ID: Last part of your Descript project URL</div>
+                  </div>}
                   {editing&&<div style={{background:T.surface,border:`1px solid ${T.cardBorder}`,borderRadius:"10px",padding:"24px",marginTop:"10px",animation:"fadeUp .3s ease"}}>
                     <label style={lbl}>Section to Revise</label>
                     <div style={{display:"flex",flexWrap:"wrap",gap:"6px",marginBottom:"16px"}}>
