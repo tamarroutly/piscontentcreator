@@ -553,20 +553,8 @@ Write ONLY the sections above. No labels, no commentary, no extra text.`;
 
   async function sendToDescript(clipSections) {
     let apiKey = descriptApiKey.trim();
-    if (!apiKey) {
-      // Try fetching from Supabase as fallback
-      try {
-        const {data} = await supabase.from("settings").select("value").eq("key","global").single();
-        apiKey = data?.value?.descriptApiKey || "";
-        if (apiKey) setDescriptApiKey(apiKey);
-      } catch {}
-    }
     if (!descriptProjectId.trim()) {
       setDescriptStatus("Please enter your Descript Project ID.");
-      return;
-    }
-    if (!apiKey) {
-      setDescriptStatus("No Descript API key found. Go to Admin → Settings to add it.");
       return;
     }
     setDescriptSending(true);
@@ -578,19 +566,16 @@ Write ONLY the sections above. No labels, no commentary, no extra text.`;
       ).join("\n");
       const agentPrompt = `Create highlights from these timestamps. For each clip, add a marker or comment at the start timestamp so the editor can find them easily:\n\n${clipLines}\n\nLabel each one as CLIP 1, CLIP 2, etc.`;
 
-      const r = await fetch("https://api.descript.com/v2/projects/" + descriptProjectId.trim() + "/agent", {
+      // Call our Vercel proxy instead of Descript directly (avoids CORS)
+      const r = await fetch("/api/descript", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": "Bearer " + apiKey
-        },
-        body: JSON.stringify({ prompt: agentPrompt })
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ projectId: descriptProjectId.trim(), prompt: agentPrompt })
       });
+      const j = await r.json();
       if (!r.ok) {
-        const err = await r.text();
-        setDescriptStatus("Descript error: " + err.substring(0, 150));
+        setDescriptStatus("Descript error: " + (j.error || "Unknown error"));
       } else {
-        const j = await r.json();
         setDescriptStatus("Sent! Job ID: " + (j.job_id || "submitted") + " — check Descript for the highlighted clips.");
       }
     } catch(e) {
@@ -831,7 +816,7 @@ Write ONLY the sections above. No labels, no commentary, no extra text.`;
                   </div>
                   {mode==="editor"&&<div style={{background:T.card,border:"1px solid "+T.cardBorder,borderRadius:"10px",padding:"18px 20px",marginTop:"14px"}}>
                     <div style={{fontSize:"13px",color:T.coral,letterSpacing:"2px",fontFamily:"'League Spartan',sans-serif",marginBottom:"12px",fontWeight:"700"}}>🎬 SEND CLIPS TO DESCRIPT</div>
-                    <div style={{fontSize:"13px",color:T.textSecondary,fontFamily:"'EB Garamond',Georgia,serif",fontStyle:"italic",marginBottom:"12px"}}>{descriptApiKey?"✓ API key loaded from Admin settings.":"⚠ Set your Descript API key in Admin → Settings first."} Paste the Project ID from your Descript URL to highlight clips.</div>
+                    <div style={{fontSize:"13px",color:T.textSecondary,fontFamily:"'EB Garamond',Georgia,serif",fontStyle:"italic",marginBottom:"12px"}}>Paste your Descript Project ID (last part of the project URL) to highlight clips in Descript.</div>
                     <div style={{display:"flex",gap:"8px",marginBottom:"8px",flexWrap:"wrap"}}>
                       <input value={descriptProjectId} onChange={e=>setDescriptProjectId(e.target.value)} placeholder="Project ID (from Descript URL)"
                         style={{flex:1,minWidth:"160px",background:T.surface,border:"1px solid "+T.cardBorder,borderRadius:"6px",padding:"10px 12px",color:T.text,fontSize:"13px",outline:"none",fontFamily:"monospace"}}/>
