@@ -570,7 +570,10 @@ Write ONLY the sections above. No labels, no commentary, no extra text.`;
       const r = await fetch("/api/descript", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ projectId: descriptProjectId.trim(), prompt: agentPrompt })
+        body: JSON.stringify({
+        projectId: descriptProjectId.trim().split("/").pop().split("?")[0],
+        prompt: agentPrompt
+      })
       });
       const j = await r.json();
       if (!r.ok) {
