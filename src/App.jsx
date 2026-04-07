@@ -405,7 +405,7 @@ function Sec({s,clr}){const m=SM[s.id]||SM.intro;
 
 // ─── MAIN APP ─────────────────────────────────────────────────────────────────
 
-function formatPublishSchedule(show) {
+function formatPublishSchedule(show, userTz) {
   if (!show?.publishDay || !show?.publishTime || !show?.publishTz) return null;
   try {
     const [hours, minutes] = show.publishTime.split(":").map(Number);
@@ -416,9 +416,9 @@ function formatPublishSchedule(show) {
     ref.setDate(ref.getDate() + ((dayIdx - ref.getDay() + 7) % 7));
     ref.setHours(hours, minutes, 0, 0);
     const showTime = ref.toLocaleString("en-US", { timeZone: show.publishTz, weekday: "long", hour: "numeric", minute: "2-digit", timeZoneName: "short" });
-    const userTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
-    const isDifferent = userTz !== show.publishTz;
-    const localTime = isDifferent ? ref.toLocaleString("en-US", { weekday: "long", hour: "numeric", minute: "2-digit", timeZoneName: "short" }) : null;
+    const tz = userTz || Intl.DateTimeFormat().resolvedOptions().timeZone;
+    const isDifferent = tz !== show.publishTz;
+    const localTime = isDifferent ? ref.toLocaleString("en-US", { timeZone: tz, weekday: "long", hour: "numeric", minute: "2-digit", timeZoneName: "short" }) : null;
     return { showTime, localTime, isDifferent };
   } catch { return null; }
 }
@@ -697,7 +697,7 @@ Write ONLY the sections above. No labels, no commentary, no extra text.`;
                       {show===k&&<div style={{position:"absolute",top:"50%",right:"20px",transform:"translateY(-50%)",width:"8px",height:"8px",borderRadius:"50%",background:T.coral}}/>}
                       <div style={{fontSize:"17px",color:T.coral,fontWeight:"600",marginBottom:"3px"}}>{s.name}</div>
                       <div style={{fontSize:"13px",color:T.textMuted,fontStyle:"italic",lineHeight:"1.4"}}>{s.tag}</div>
-                      {s.publishDay&&s.publishTime&&s.publishTz&&(()=>{try{const sched=formatPublishSchedule(s);if(!sched)return null;return(<div style={{fontSize:"11px",color:T.textMuted,marginTop:"6px",display:"flex",alignItems:"center",gap:"6px"}}><span style={{color:T.coral}}>📅</span><span>{sched.showTime}{sched.isDifferent?" · "+sched.localTime+" your time":""}</span></div>);}catch{return null;}})()}
+                      {s.publishDay&&s.publishTime&&s.publishTz&&(()=>{try{const sched=formatPublishSchedule(s,userProfile?.timezone);if(!sched)return null;return(<div style={{fontSize:"11px",color:T.textMuted,marginTop:"6px",display:"flex",alignItems:"center",gap:"6px"}}><span style={{color:T.coral}}>📅</span><span>{sched.showTime}{sched.isDifferent?" · "+sched.localTime+" your time":""}</span></div>);}catch{return null;}})()}
                     </div>
                   ))}
                 </div>
@@ -733,7 +733,7 @@ Write ONLY the sections above. No labels, no commentary, no extra text.`;
                 <p style={{fontSize:"17px",color:T.textMuted,margin:0,fontFamily:"'Inter', ui-sans-serif, system-ui, sans-serif",letterSpacing:"1px"}}>CONFIGURE THIS EPISODE</p>
               </div>
               {mode!=="clips"&&<div style={{marginBottom:"20px"}}>
-                {d?.publishDay&&d?.publishTime&&d?.publishTz&&(()=>{try{const sched=formatPublishSchedule(d);if(!sched)return null;return(<div style={{background:T.coralSoft,border:"1px solid "+T.coralMid,borderRadius:"8px",padding:"12px 16px",marginBottom:"20px",display:"flex",alignItems:"center",gap:"10px"}}><span>📅</span><div><div style={{fontSize:"13px",color:T.coral,fontWeight:"600"}}>PUBLISH SCHEDULE</div><div style={{fontSize:"14px",color:T.textSecondary,marginTop:"2px"}}>{sched.showTime}{sched.isDifferent?" · "+sched.localTime+" your time":""}</div></div></div>);}catch{return null;}})()}
+                {d?.publishDay&&d?.publishTime&&d?.publishTz&&(()=>{try{const sched=formatPublishSchedule(d,userProfile?.timezone);if(!sched)return null;return(<div style={{background:T.coralSoft,border:"1px solid "+T.coralMid,borderRadius:"8px",padding:"12px 16px",marginBottom:"20px",display:"flex",alignItems:"center",gap:"10px"}}><span>📅</span><div><div style={{fontSize:"13px",color:T.coral,fontWeight:"600"}}>PUBLISH SCHEDULE</div><div style={{fontSize:"14px",color:T.textSecondary,marginTop:"2px"}}>{sched.showTime}{sched.isDifferent?" · "+sched.localTime+" your time":""}</div></div></div>);}catch{return null;}})()}
                 <label style={lbl}>Episode Number</label>
                 <input style={field} placeholder="e.g. 42 (optional)" value={ep} onChange={e=>setEp(e.target.value)}/>
               </div>}
