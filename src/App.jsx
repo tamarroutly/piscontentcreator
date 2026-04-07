@@ -228,19 +228,26 @@ What resonates with this audience: ${d.voice?.use||""}
 
 Your job is to find the single best intro hook and the best social clips based on what will land with THIS specific audience.
 
+STRICT DURATION RULE: Every clip and hook must be UNDER 60 seconds when spoken. Ideal length is 30-45 seconds. Do not suggest any moment longer than 60 seconds.
+
 Generate the following:
+
+---
+
+EDITOR NOTES
+[Read this first before reviewing clips. Include: overall episode tone and energy, any audio quality flags apparent from the transcript, suggested music mood, key transitions to watch for, and any other guidance to help the editor approach this episode.]
 
 ---
 
 INTRO HOOK RECOMMENDATIONS
 
-Find the 3 best moments from the transcript to use as a podcast intro hook (spliced in before theme music). These should be 30-90 seconds when spoken. Rank them 1-3 with #1 being your top recommendation.
+Find the 3 best moments from the transcript to use as a podcast intro hook (spliced in before theme music). Each must be under 60 seconds when spoken — ideally 30-45 seconds. Rank them 1-3 with #1 being your top recommendation.
 
 For each hook, provide:
 
 HOOK #[N] — [RECOMMENDED / ALTERNATE 1 / ALTERNATE 2]
 TIMESTAMP: [approximate time in transcript — e.g. "~14:30" or "around the 22-minute mark"]
-DURATION: [estimated clip length e.g. "~45 seconds"]
+DURATION: [estimated clip length — must be under 60 seconds]
 QUOTE: [the exact words from the transcript where this moment starts and ends — copy verbatim]
 WHY THIS WORKS: [2-3 sentences — specifically why this moment will hook THIS show's audience based on their pain points and what they care about]
 AUDIENCE TRIGGER: [the specific emotional hook — e.g. "Relief — listener feels finally understood", "Curiosity — raises a question they've always had", "Validation — confirms what they suspected"]
@@ -249,22 +256,20 @@ AUDIENCE TRIGGER: [the specific emotional hook — e.g. "Relief — listener fee
 
 SOCIAL CLIP RECOMMENDATIONS
 
-Find exactly ${clipCount} moments that would make high-performing social media clips (60-90 seconds ideal, up to 3 minutes max). Focus on moments that are self-contained, emotionally resonant, and don't require context from the rest of the episode.
+Find exactly ${clipCount} moments that would make high-performing social media clips. Each clip must be under 60 seconds when spoken — ideally 30-45 seconds. Focus on moments that are self-contained, emotionally resonant, and don't require context from the rest of the episode.
 
 For each clip:
 
 CLIP #[N]
+SEO TITLE: [4-7 word title optimized for search — punchy, specific, no show name]
 TIMESTAMP: [approximate start and end time]
-DURATION: [estimated length]
+DURATION: [estimated length — must be under 60 seconds]
 BEST PLATFORM: [Instagram Reels / TikTok / YouTube Shorts / LinkedIn — pick the ONE best fit and explain why]
 QUOTE: [exact words where clip starts and ends]
 WHY IT PERFORMS: [why this specific moment will stop the scroll — what's the hook, the tension, the payoff]
 SUGGESTED CAPTION HOOK: [one punchy first line for the social caption]
 
 ---
-
-EDITOR NOTES
-[Any additional notes for the editor — transitions, moments to watch for, audio quality flags if apparent from transcript, suggested music mood, etc.]
 `;
   }
   const snTpl = buildSNTemplate(d.snElements);
@@ -405,6 +410,19 @@ function Sec({s,clr}){const m=SM[s.id]||SM.intro;
 
 // ─── MAIN APP ─────────────────────────────────────────────────────────────────
 
+function getUtcOffsetMinutes(date, tz) {
+  // Returns offset in minutes: local_in_tz - UTC
+  const fmt = new Intl.DateTimeFormat('en-US', {
+    timeZone: tz, year: 'numeric', month: 'numeric', day: 'numeric',
+    hour: 'numeric', minute: 'numeric', hour12: false
+  });
+  const parts = fmt.formatToParts(date);
+  const get = (type) => { const p = parts.find(p => p.type === type); return p ? parseInt(p.value) : 0; };
+  let h = get('hour'); if (h === 24) h = 0;
+  const localAsUtc = Date.UTC(get('year'), get('month') - 1, get('day'), h, get('minute'));
+  return (localAsUtc - date.getTime()) / 60000;
+}
+
 function formatPublishSchedule(show, userTz) {
   if (!show?.publishDay || !show?.publishTime || !show?.publishTz) return null;
   try {
@@ -412,13 +430,15 @@ function formatPublishSchedule(show, userTz) {
     const days = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
     const dayIdx = days.indexOf(show.publishDay);
     if (dayIdx === -1) return null;
-    const ref = new Date();
-    ref.setDate(ref.getDate() + ((dayIdx - ref.getDay() + 7) % 7));
-    ref.setHours(hours, minutes, 0, 0);
-    const showTime = ref.toLocaleString("en-US", { timeZone: show.publishTz, weekday: "long", hour: "numeric", minute: "2-digit", timeZoneName: "short" });
     const tz = userTz || Intl.DateTimeFormat().resolvedOptions().timeZone;
+    // Use a fixed reference week (Jan 5-11, 2025; Jan 5 = Sunday) to avoid DST edge cases
+    // Build a UTC timestamp that corresponds to hours:minutes in show.publishTz on the correct weekday
+    const candidate = new Date(Date.UTC(2025, 0, 5 + dayIdx, hours, minutes));
+    const offsetMin = getUtcOffsetMinutes(candidate, show.publishTz);
+    const actualUtc = new Date(candidate.getTime() - offsetMin * 60000);
+    const showTime = actualUtc.toLocaleString("en-US", { timeZone: show.publishTz, weekday: "long", hour: "numeric", minute: "2-digit", timeZoneName: "short" });
     const isDifferent = tz !== show.publishTz;
-    const localTime = isDifferent ? ref.toLocaleString("en-US", { timeZone: tz, weekday: "long", hour: "numeric", minute: "2-digit", timeZoneName: "short" }) : null;
+    const localTime = isDifferent ? actualUtc.toLocaleString("en-US", { timeZone: tz, weekday: "long", hour: "numeric", minute: "2-digit", timeZoneName: "short" }) : null;
     return { showTime, localTime, isDifferent };
   } catch { return null; }
 }
