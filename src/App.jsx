@@ -1,14 +1,16 @@
 import { useState, useRef, useEffect } from "react";
 import { loadShows, saveShow } from "./lib/shows";
+import Auth from "./Auth";
+import Profile from "./Profile";
 import { supabase } from "./lib/supabase";
 import { AdminPanel, AdminGate } from "./AdminPanel";
 
 const ANTHROPIC_KEY = import.meta.env.VITE_ANTHROPIC_API_KEY;
 
 const T = {
-  bg: "#1A1A1A", surface: "#242424", card: "#2C2C2C", cardBorder: "#3A3A3A",
-  text: "#FFFFFF", textSecondary: "#E0E0E0", textMuted: "#999",
-  coral: "#FF3131", coralSoft: "#FF313118", coralMid: "#FF313144", red: "#FF3131",
+  bg: "#1A1A1A", surface: "#212121", card: "#2A2A2A", cardBorder: "#3A3A3A",
+  text: "#FFFFFF", textSecondary: "#CECECE", textMuted: "#8E8EA0",
+  coral: "#D97757", coralSoft: "#D9775718", coralMid: "#D9775740", red: "#D97757",
 };
 
 const MODES = [
@@ -212,7 +214,7 @@ function sys(show, k, g, ep, mode, extras=[], clipCount=5) {
   const bp = stripHtml(d.bp||"");
   const urls = (bp.match(/https?:\/\/[^\s,)]+|www\.[^\s,)]+/g)||[]);
   const voice = d.voice||{}; const aud = d.aud||{}; const tpl = d.tpl||{};
-  const base = `You are the content strategist for ${d.name}.\n\nOUTPUT FORMAT:\n- PLAIN TEXT only. Zero markdown. No asterisks. No bold. No italic.\n- ALL section headers and sub-headers must be in ALL CAPS — every single one, no exceptions\n- This includes: KEY TAKEAWAYS, NOTABLE QUOTE, GUEST BIO, LINKS & RESOURCES, TIMESTAMPS, HASHTAGS, KEYWORDS, SUBJECT LINE, PREVIEW TEXT, and any other label\n- Separate major sections with ---\n- Bullets use - (hyphen space)\n\nCRITICAL RULES:\n1. SEO TITLES: Write the title ONLY. Do NOT add the podcast name, a dash, episode number, or any other text after the title.\n2. SHOW NOTES: The very first thing after the SHOW NOTES header must be the hook question. No podcast name, no episode info, no intro text.\n3. BULLETS: KEY TAKEAWAYS must be 3-7 bullet points, each on its own line starting with - (hyphen space). Never write takeaways as a paragraph.\n4. HEADERS: Never use Title Case for any header or label. ALL CAPS only. "Links & Resources" must be written as "LINKS & RESOURCES".\n\nShow: ${d.name} | "${d.tag}" | Host(s): ${d.hosts}\n${g?"GUEST episode — include Guest Share Kit.":"SOLO episode — skip Guest Share Kit."}${ep?` | Episode ${ep}`:""}\n\nVOICE: ${voice.traits||""} | Energy: ${voice.energy||""} | ${voice.arch||""}\nArc: ${voice.arc||""}\nPhrases: ${(voice.phrases||[]).join(" | ")}\nUSE: ${voice.use||""}\nAVOID: ${voice.avoid||""}\n\nAUDIENCE: ${aud.who||""}\nPain: ${(aud.pains||[]).join(" | ")}\nLanguage: ${aud.lang||""}\n\nPLATFORMS: ${[...ap,...extras].join(", ")} | HASHTAGS: ${d.tags||""}\n${extras.length>0?`ADDITIONAL PLATFORMS THIS EPISODE: ${extras.join(", ")} -- generate a dedicated social post for each additional platform listed.`:""}\n\n${hasBoilerplate(d.snElements) ? `BOILERPLATE (copy exactly, no header, no label before it):\\n${bp}\\n\\nURLs — include exactly:\\n${urls.map(u=>`  • ${u}`).join("\\n")}` : "No boilerplate."}\\n\\nTIMESTAMPS RULE: Always include timestamps in the YouTube description — generate them from the transcript. ${getTimestampsScope(d.snElements) === "both" ? "Also include timestamps in show notes." : "Do NOT include timestamps in show notes unless the show notes template specifically includes them."}\\n\\nRULES:\n${d.rules||""}\n\n`;
+  const base = `You are the content strategist for ${d.name}.\n\nOUTPUT FORMAT:\n- PLAIN TEXT only. Zero markdown. No asterisks. No bold. No italic.\n- ALL section headers and sub-headers must be in ALL CAPS — every single one, no exceptions\n- This includes: KEY TAKEAWAYS, NOTABLE QUOTE, GUEST BIO, LINKS & RESOURCES, TIMESTAMPS, HASHTAGS, KEYWORDS, SUBJECT LINE, PREVIEW TEXT, and any other label\n- Separate major sections with ---\n- Bullets use - (hyphen space)\n\nCRITICAL RULES:\n1. SEO TITLES: Write the title ONLY. Do NOT add the podcast name, a dash, episode number, or any other text after the title.\n2. SHOW NOTES: The very first thing after the SHOW NOTES header must be the hook question. No podcast name, no episode info, no intro text.\n3. BULLETS: KEY TAKEAWAYS must be 3-7 bullet points, each on its own line starting with - (hyphen space). Never write takeaways as a paragraph.\n4. HEADERS: Never use Title Case for any header or label. ALL CAPS only. "Links & Resources" must be written as "LINKS & RESOURCES".\n\nShow: ${d.name} | "${d.tag}" | Host(s): ${d.hosts}\n${g?"GUEST episode — include Guest Share Kit.":"SOLO episode — skip Guest Share Kit."}${ep?` | Episode ${ep}`:""}\n\nVOICE: ${voice.traits||""} | Energy: ${voice.energy||""} | ${voice.arch||""}\nArc: ${voice.arc||""}\nPhrases: ${(voice.phrases||[]).join(" | ")}\nUSE: ${voice.use||""}\nAVOID: ${voice.avoid||""}\n\nAUDIENCE: ${aud.who||""}\nPain: ${(aud.pains||[]).join(" | ")}\nLanguage: ${aud.lang||""}\n\nPLATFORMS: ${[...ap,...extras].join(", ")} | HASHTAGS: ${d.tags||""}\n${extras.length>0?`ADDITIONAL PLATFORMS THIS EPISODE: ${extras.join(", ")} -- generate a dedicated social post for each additional platform listed.`:""}\n\n${bp ? `BOILERPLATE — append verbatim at the end of show notes and YouTube, no label:\\\\n${bp}\\\\n\\\\nInclude all URLs exactly as written.` : "No boilerplate for this show."}\\n\\nTIMESTAMPS RULE: Always include timestamps in the YouTube description — generate them from the transcript. ${getTimestampsScope(d.snElements) === "both" ? "Also include timestamps in show notes." : "Do NOT include timestamps in show notes unless the show notes template specifically includes them."}\\n\\nRULES:\n${d.rules||""}\n\n`;
   if(mode==="clips"){return base;}
   if(mode==="editor"){
     return base + `
@@ -365,7 +367,7 @@ function fallbackCopy(text){
   sel.removeAllRanges();document.body.removeChild(el);
 }
 
-function Cp({text}){const[ok,setOk]=useState(false);return <button onClick={()=>{copyText(text);setOk(true);setTimeout(()=>setOk(false),1800);}} style={{padding:"5px 14px",background:ok?T.coralSoft:"transparent",border:`1px solid ${ok?T.coralMid:T.cardBorder}`,borderRadius:"6px",color:ok?T.coral:T.textMuted,fontSize:"12px",cursor:"pointer",fontFamily:"'League Spartan',sans-serif",transition:"all .25s",whiteSpace:"nowrap",letterSpacing:"1px"}}>{ok?"✓ COPIED":"COPY"}</button>;}
+function Cp({text}){const[ok,setOk]=useState(false);return <button onClick={()=>{copyText(text);setOk(true);setTimeout(()=>setOk(false),1800);}} style={{padding:"5px 14px",background:ok?T.coralSoft:"transparent",border:`1px solid ${ok?T.coralMid:T.cardBorder}`,borderRadius:"6px",color:ok?T.coral:T.textMuted,fontSize:"12px",cursor:"pointer",fontFamily:"'Inter', ui-sans-serif, system-ui, sans-serif",transition:"all .25s",whiteSpace:"nowrap",letterSpacing:"1px"}}>{ok?"✓ COPIED":"COPY"}</button>;}
 
 function isTopSection(line){const t=line.trim();return /^(\d+\.\s*)?(SEO TITLE|SHOW NOTES|SPOTIFY FOR CREATORS|INTRO HOOK|SOCIAL CLIP|EDITOR NOTES|YOUTUBE DESC|SOCIAL MEDIA|QUOTE CARDS|GUEST SHARE|EMAIL NEWS|NEWSLETTER|BLOG (ARTICLE|POST)|PATREON|CLIPS|SHORTS|REELS)/i.test(t);}
 function isSubHeader(line){const t=line.trim();if(!t||t.length<3)return false;if(/^[-\u2022*\d"(@]/.test(t))return false;if(isTopSection(line))return false;if(t.split(/\s+/).length>8)return false;const allCaps=/^[A-Z][A-Z\s&()\u00ae\u2122\/\-:\.]+$/.test(t)&&t.length>3;const titleCase=/^[A-Z][a-zA-Z]*(\s(&|[A-Z][a-zA-Z]*))*:?$/.test(t)&&t.length>3&&t.split(/\s+/).length<=6;return allCaps||titleCase;}
@@ -380,10 +382,10 @@ function renderContent(text){
     const isBullet=/^[-\u2022]\s/.test(t);
     const isEmpty=!t;
     if(isEmpty)return <div key={li} style={{height:"6px"}}/>;
-    if(isTop)return <div key={li} style={{fontWeight:"700",fontSize:"14px",letterSpacing:"2px",textTransform:"uppercase",color:T.coral,marginTop:"18px",marginBottom:"4px",fontFamily:"'League Spartan',sans-serif"}}>{linkify(line)}</div>;
-    if(isSub)return <div key={li} style={{fontWeight:"700",fontSize:"13px",color:T.text,marginTop:"14px",marginBottom:"4px",fontFamily:"'League Spartan',sans-serif",letterSpacing:"1px"}}>{linkify(line)}</div>;
-    if(isBullet){const content=t.replace(/^[-\u2022]\s/,"");return <div key={li} style={{display:"flex",gap:"10px",fontSize:"16px",color:T.textSecondary,fontFamily:"'EB Garamond',Georgia,serif",lineHeight:"2.0",marginBottom:"5px"}}><span style={{color:T.textMuted,flexShrink:0,marginTop:"2px"}}>•</span><span>{linkify(content)}</span></div>;}
-    return <div key={li} style={{fontSize:"16px",color:T.textSecondary,fontFamily:"'EB Garamond',Georgia,serif",lineHeight:"2.0",marginBottom:"5px"}}>{linkify(line)}</div>;
+    if(isTop)return <div key={li} style={{fontWeight:"700",fontSize:"14px",letterSpacing:"2px",textTransform:"uppercase",color:T.coral,marginTop:"18px",marginBottom:"4px",fontFamily:"'Inter', ui-sans-serif, system-ui, sans-serif"}}>{linkify(line)}</div>;
+    if(isSub)return <div key={li} style={{fontWeight:"700",fontSize:"13px",color:T.text,marginTop:"14px",marginBottom:"4px",fontFamily:"'Inter', ui-sans-serif, system-ui, sans-serif",letterSpacing:"1px"}}>{linkify(line)}</div>;
+    if(isBullet){const content=t.replace(/^[-\u2022]\s/,"");return <div key={li} style={{display:"flex",gap:"10px",fontSize:"16px",color:T.textSecondary,fontFamily:"'Inter', ui-sans-serif, system-ui, sans-serif",lineHeight:"2.0",marginBottom:"5px"}}><span style={{color:T.textMuted,flexShrink:0,marginTop:"2px"}}>•</span><span>{linkify(content)}</span></div>;}
+    return <div key={li} style={{fontSize:"16px",color:T.textSecondary,fontFamily:"'Inter', ui-sans-serif, system-ui, sans-serif",lineHeight:"2.0",marginBottom:"5px"}}>{linkify(line)}</div>;
   });
 }
 
@@ -392,7 +394,7 @@ function Sec({s,clr}){const m=SM[s.id]||SM.intro;
     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"13px 20px",borderBottom:`1px solid ${T.cardBorder}`,background:T.surface}}>
       <div style={{display:"flex",alignItems:"center",gap:"8px"}}>
         <span style={{fontSize:"14px"}}>{m.i}</span>
-        <span style={{fontSize:"14px",letterSpacing:"2px",textTransform:"uppercase",color:clr||T.coral,fontWeight:"700",fontFamily:"'League Spartan',sans-serif"}}>{m.l}</span>
+        <span style={{fontSize:"14px",letterSpacing:"2px",textTransform:"uppercase",color:clr||T.coral,fontWeight:"700",fontFamily:"'Inter', ui-sans-serif, system-ui, sans-serif"}}>{m.l}</span>
       </div>
       <Cp text={s.content}/>
     </div>
@@ -402,6 +404,25 @@ function Sec({s,clr}){const m=SM[s.id]||SM.intro;
 
 
 // ─── MAIN APP ─────────────────────────────────────────────────────────────────
+
+function formatPublishSchedule(show) {
+  if (!show?.publishDay || !show?.publishTime || !show?.publishTz) return null;
+  try {
+    const [hours, minutes] = show.publishTime.split(":").map(Number);
+    const days = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+    const dayIdx = days.indexOf(show.publishDay);
+    if (dayIdx === -1) return null;
+    const ref = new Date();
+    ref.setDate(ref.getDate() + ((dayIdx - ref.getDay() + 7) % 7));
+    ref.setHours(hours, minutes, 0, 0);
+    const showTime = ref.toLocaleString("en-US", { timeZone: show.publishTz, weekday: "long", hour: "numeric", minute: "2-digit", timeZoneName: "short" });
+    const userTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    const isDifferent = userTz !== show.publishTz;
+    const localTime = isDifferent ? ref.toLocaleString("en-US", { weekday: "long", hour: "numeric", minute: "2-digit", timeZoneName: "short" }) : null;
+    return { showTime, localTime, isDifferent };
+  } catch { return null; }
+}
+
 export default function App(){
   const[shows,setShows]=useState({});
   const[loadingShows,setLoadingShows]=useState(true);
@@ -429,13 +450,14 @@ export default function App(){
   const[descriptApiKey,setDescriptApiKey]=useState("");
 
   useEffect(()=>{
-    async function loadGlobalSettings(){
+    async function init(){
+      // Load global settings
       try{
         const {data}=await supabase.from("settings").select("value").eq("key","global").single();
         if(data?.value?.descriptApiKey) setDescriptApiKey(data.value.descriptApiKey);
       }catch{}
     }
-    loadGlobalSettings();
+    init();
   },[]);
   const[descriptStatus,setDescriptStatus]=useState("");
   const[descriptSending,setDescriptSending]=useState(false);
@@ -444,6 +466,11 @@ export default function App(){
   const[clipPlatforms,setClipPlatforms]=useState(["YouTube"]);
   const[showAdmin,setShowAdmin]=useState(false);
   const[showAdminGate,setShowAdminGate]=useState(false);
+  const[isAdmin,setIsAdmin]=useState(false);
+  const[currentUser,setCurrentUser]=useState(null);
+  const[authReady,setAuthReady]=useState(false);
+  const[showProfile,setShowProfile]=useState(false);
+  const[userProfile,setUserProfile]=useState(null);
   const fileRef=useRef(null);
 
   const d=show?shows[show]:null;
@@ -544,12 +571,40 @@ Write ONLY the sections above. No labels, no commentary, no extra text.`;
     finally{setRev(false);setEditing(false);setESec(null);setETxt("");}
   }
 
+  async function handleAuthenticated(user) {
+    setCurrentUser(user);
+    setAuthReady(true);
+    // Load user profile
+    try {
+      const { data } = await supabase.from("profiles").select("name, timezone, role").eq("id", user.id).single();
+      setUserProfile(data);
+      // Check admin: role in profiles OR hardcoded admin emails
+      const adminEmails = ["tamar@podcastimpactstudio.com", "tamarroutly@gmail.com"];
+      const isAdminUser = data?.role === "admin" || adminEmails.includes(user.email?.toLowerCase());
+      setIsAdmin(isAdminUser);
+    } catch {
+      // If no profile yet, check by email
+      const adminEmails = ["tamar@podcastimpactstudio.com", "tamarroutly@gmail.com"];
+      setIsAdmin(adminEmails.includes(user.email?.toLowerCase()));
+    }
+  }
+
+  async function handleSignOut() {
+    await supabase.auth.signOut();
+    setCurrentUser(null);
+    setAuthReady(false);
+    setIsAdmin(false);
+    setUserProfile(null);
+    setShowProfile(false);
+    reset();
+  }
+
   function reset(){setStep("select");setShow(null);setMode(null);setGuest(null);setEp("");setTx("");setRaw("");setSecs([]);setErr("");setEditing(false);setESec(null);setETxt("");setExtraPlatforms([]);setClipCount(3);setClipTexts(Array(10).fill(""));setClipResults([]);setClipPlatforms(["YouTube"]);}
 
-  const lbl={fontSize:"15px",letterSpacing:"2px",textTransform:"uppercase",color:T.textMuted,marginBottom:"10px",display:"block",fontFamily:"'League Spartan',sans-serif"};
-  const field={width:"100%",background:T.surface,border:`1px solid ${T.cardBorder}`,borderRadius:"8px",padding:"14px 18px",color:T.text,fontSize:"15px",fontFamily:"'EB Garamond',Georgia,serif",outline:"none",boxSizing:"border-box"};
-  const primary=c=>({width:"100%",padding:"16px",background:c||T.coral,border:"none",borderRadius:"8px",color:"#fff",fontSize:"16px",fontWeight:"700",cursor:"pointer",letterSpacing:"2px",fontFamily:"'League Spartan',sans-serif",textTransform:"uppercase",marginTop:"20px"});
-  const ghost={padding:"9px 18px",background:"transparent",border:`1px solid ${T.cardBorder}`,borderRadius:"6px",color:T.textMuted,fontSize:"14px",cursor:"pointer",fontFamily:"'League Spartan',sans-serif",letterSpacing:"1.5px",textTransform:"uppercase"};
+  const lbl={fontSize:"15px",letterSpacing:"2px",textTransform:"uppercase",color:T.textMuted,marginBottom:"10px",display:"block",fontFamily:"'Inter', ui-sans-serif, system-ui, sans-serif"};
+  const field={width:"100%",background:T.surface,border:`1px solid ${T.cardBorder}`,borderRadius:"8px",padding:"14px 18px",color:T.text,fontSize:"15px",fontFamily:"'Inter', ui-sans-serif, system-ui, sans-serif",outline:"none",boxSizing:"border-box"};
+  const primary=c=>({width:"100%",padding:"16px",background:c||T.coral,border:"none",borderRadius:"8px",color:"#fff",fontSize:"16px",fontWeight:"700",cursor:"pointer",letterSpacing:"2px",fontFamily:"'Inter', ui-sans-serif, system-ui, sans-serif",textTransform:"uppercase",marginTop:"20px"});
+  const ghost={padding:"9px 18px",background:"transparent",border:`1px solid ${T.cardBorder}`,borderRadius:"6px",color:T.textMuted,fontSize:"14px",cursor:"pointer",fontFamily:"'Inter', ui-sans-serif, system-ui, sans-serif",letterSpacing:"1.5px",textTransform:"uppercase"};
 
   async function sendToDescript(clipSections) {
     let apiKey = descriptApiKey.trim();
@@ -588,11 +643,16 @@ Write ONLY the sections above. No labels, no commentary, no extra text.`;
     }
   }
 
+  // Show auth screen if not logged in
+  if(!authReady||!currentUser){
+    return <Auth onAuthenticated={handleAuthenticated}/>;
+  }
+
   return(
     <div style={{minHeight:"100vh",width:"100%",background:T.bg,color:T.text,display:"flex",flexDirection:"column"}}>
       <style>{`*{box-sizing:border-box}@keyframes spin{to{transform:rotate(360deg)}}@keyframes pulse{0%,100%{opacity:.3}50%{opacity:1}}@keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}textarea::placeholder,input::placeholder{color:${T.textMuted}}button:hover{opacity:.85}::-webkit-scrollbar{width:4px}::-webkit-scrollbar-thumb{background:${T.cardBorder};border-radius:2px}a{transition:opacity .2s}a:hover{opacity:.7}`}</style>
 
-      {showAdminGate&&<AdminGate onSuccess={()=>{setShowAdminGate(false);setShowAdmin(true);}} onClose={()=>setShowAdminGate(false)}/>}
+      {showProfile&&currentUser&&<Profile user={currentUser} onClose={()=>setShowProfile(false)} onSignOut={handleSignOut}/>}
       {showAdmin&&<AdminPanel shows={shows} onClose={()=>setShowAdmin(false)} onSaved={refreshShows}/>}
 
       {/* HEADER */}
@@ -600,13 +660,14 @@ Write ONLY the sections above. No labels, no commentary, no extra text.`;
         <div style={{display:"flex",alignItems:"center",gap:"16px"}}>
           <div style={{width:"3px",height:"28px",background:T.coral,borderRadius:"2px"}}/>
           <div style={{display:"flex",alignItems:"baseline",gap:"12px"}}>
-            <span style={{fontSize:"24px",letterSpacing:"4px",textTransform:"uppercase",color:T.text,fontFamily:"'League Spartan',sans-serif",fontWeight:"800"}}>Podcast Impact Studio</span>
-            <span style={{fontSize:"15px",letterSpacing:"4px",textTransform:"uppercase",color:T.coral,fontFamily:"'League Spartan',sans-serif",fontWeight:"600"}}>Content Creator</span>
+            <span style={{fontSize:"24px",letterSpacing:"4px",textTransform:"uppercase",color:T.text,fontFamily:"'Inter', ui-sans-serif, system-ui, sans-serif",fontWeight:"800"}}>Podcast Impact Studio</span>
+            <span style={{fontSize:"15px",letterSpacing:"4px",textTransform:"uppercase",color:T.coral,fontFamily:"'Inter', ui-sans-serif, system-ui, sans-serif",fontWeight:"600"}}>Content Creator</span>
           </div>
         </div>
         <div style={{display:"flex",gap:"10px",alignItems:"center"}}>
           {step!=="select"&&<button onClick={reset} style={ghost}>← Start Over</button>}
-          <button onClick={()=>setShowAdminGate(true)} style={{...ghost,border:"none",opacity:.4,fontSize:"16px",padding:"8px 12px"}}>⚙️</button>
+          <button onClick={()=>setShowProfile(true)} style={{...ghost,border:"none",opacity:.6,fontSize:"14px",padding:"8px 10px"}} title="My Account">👤</button>
+          {isAdmin&&<button onClick={()=>setShowAdmin(true)} style={{...ghost,border:"none",opacity:.7,fontSize:"16px",padding:"8px 10px"}} title="Admin Settings">⚙️</button>}
         </div>
       </div>
 
@@ -623,37 +684,36 @@ Write ONLY the sections above. No labels, no commentary, no extra text.`;
             {/* SELECT SHOW */}
             {step==="select"&&<div style={{animation:"fadeUp .4s ease"}}>
               <div style={{marginBottom:"40px"}}>
-                <h1 style={{fontSize:"48px",fontWeight:"700",color:T.text,margin:"0 0 8px",letterSpacing:"-0.5px",fontFamily:"'League Spartan',sans-serif"}}>Select a show</h1>
-                <p style={{fontSize:"17px",color:T.textMuted,margin:0,fontFamily:"'League Spartan',sans-serif",letterSpacing:"1px"}}>CHOOSE THE PODCAST YOU'RE CREATING CONTENT FOR</p>
+                <h1 style={{fontSize:"48px",fontWeight:"700",color:T.text,margin:"0 0 8px",letterSpacing:"-0.5px",fontFamily:"'Inter', ui-sans-serif, system-ui, sans-serif"}}>Select a show</h1>
+                <p style={{fontSize:"17px",color:T.textMuted,margin:0,fontFamily:"'Inter', ui-sans-serif, system-ui, sans-serif",letterSpacing:"1px"}}>CHOOSE THE PODCAST YOU'RE CREATING CONTENT FOR</p>
               </div>
               {loadingShows?(
-                <div style={{textAlign:"center",padding:"60px",color:T.textMuted,fontFamily:"'League Spartan',sans-serif",letterSpacing:"2px",fontSize:"12px"}}>LOADING SHOWS...</div>
+                <div style={{textAlign:"center",padding:"60px",color:T.textMuted,fontFamily:"'Inter', ui-sans-serif, system-ui, sans-serif",letterSpacing:"2px",fontSize:"12px"}}>LOADING SHOWS...</div>
               ):(
-                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"12px"}}>
-                  {Object.entries(shows).map(([k,s])=>(
-                    <div key={k} onClick={()=>setShow(k)} style={{background:show===k?`${s.clr||T.coral}12`:T.card,border:show===k?`1px solid ${s.clr||T.coral}`:` 1px solid ${T.cardBorder}`,borderRadius:"10px",padding:"20px 24px",cursor:"pointer",transition:"all .15s",position:"relative"}}>
+                <div style={{display:"flex",flexDirection:"column",gap:"8px"}}>
+                  {Object.entries(shows).sort(([,a],[,b])=>a.name.localeCompare(b.name)).map(([k,s])=>(
+                    <div key={k} onClick={()=>{setShow(k);setStep("mode");}} style={{background:show===k?T.coralSoft:T.card,border:show===k?`1px solid ${s.clr||T.coral}`:` 1px solid ${T.cardBorder}`,borderRadius:"10px",padding:"20px 24px",cursor:"pointer",transition:"all .15s",position:"relative"}}>
                       {show===k&&<div style={{position:"absolute",top:"16px",right:"16px",width:"8px",height:"8px",borderRadius:"50%",background:s.clr||T.coral}}/>}
-                      <div style={{fontSize:"24px",color:s.clr||T.coral,fontWeight:"700",marginBottom:"4px",letterSpacing:"-0.3px",fontFamily:"'League Spartan',sans-serif"}}>{s.name}</div>
-                      <div style={{fontSize:"17px",color:T.textSecondary,fontStyle:"italic",marginBottom:"12px",lineHeight:"1.4"}}>{s.tag}</div>
-                      <div style={{fontSize:"15px",color:T.textSecondary,fontFamily:"'League Spartan',sans-serif",letterSpacing:"0.5px"}}>
-                        {[...(s.platforms?.p||[]),...(s.platforms?.s||[])].join(" · ")}
-                      </div>
+                      {show===k&&<div style={{position:"absolute",top:"50%",right:"20px",transform:"translateY(-50%)",width:"8px",height:"8px",borderRadius:"50%",background:T.coral}}/>}
+                      <div style={{fontSize:"17px",color:T.coral,fontWeight:"600",marginBottom:"3px"}}>{s.name}</div>
+                      <div style={{fontSize:"13px",color:T.textMuted,fontStyle:"italic",lineHeight:"1.4"}}>{s.tag}</div>
+                      {s.publishDay&&s.publishTime&&s.publishTz&&(()=>{try{const sched=formatPublishSchedule(s);if(!sched)return null;return(<div style={{fontSize:"11px",color:T.textMuted,marginTop:"6px",display:"flex",alignItems:"center",gap:"6px"}}><span style={{color:T.coral}}>📅</span><span>{sched.showTime}{sched.isDifferent?" · "+sched.localTime+" your time":""}</span></div>);}catch{return null;}})()}
                     </div>
                   ))}
                 </div>
               )}
-              {show&&<button onClick={()=>{setStep("mode");}} style={primary(T.red)}>Continue →</button>}
+              
             </div>}
 
             {/* MODE */}
             {step==="mode"&&d&&<div style={{animation:"fadeUp .4s ease"}}>
               <div style={{marginBottom:"40px"}}>
-                <h1 style={{fontSize:"48px",fontWeight:"700",color:T.text,margin:"0 0 8px",letterSpacing:"-0.5px",fontFamily:"'League Spartan',sans-serif"}}>What are you creating?</h1>
-                <p style={{fontSize:"17px",color:T.textMuted,margin:0,fontFamily:"'League Spartan',sans-serif",letterSpacing:"1px"}}>{d.name.toUpperCase()}</p>
+                <h1 style={{fontSize:"48px",fontWeight:"700",color:T.text,margin:"0 0 8px",letterSpacing:"-0.5px",fontFamily:"'Inter', ui-sans-serif, system-ui, sans-serif"}}>What are you creating?</h1>
+                <p style={{fontSize:"17px",color:T.textMuted,margin:0,fontFamily:"'Inter', ui-sans-serif, system-ui, sans-serif",letterSpacing:"1px"}}>{d.name.toUpperCase()}</p>
               </div>
               <div style={{display:"flex",flexDirection:"column",gap:"10px"}}>
                 {MODES.map(m=>(
-                  <div key={m.id} onClick={()=>setMode(m.id)} style={{background:mode===m.id?`${T.coral}10`:T.card,border:mode===m.id?`1px solid ${T.coral}`:`1px solid ${T.cardBorder}`,borderRadius:"10px",padding:"20px 24px",cursor:"pointer",transition:"all .15s",display:"flex",alignItems:"center",gap:"20px"}}>
+                  <div key={m.id} onClick={()=>{setMode(m.id);setStep(m.id==="editor"?"input":"configure");}} style={{background:mode===m.id?`${T.coral}10`:T.card,border:mode===m.id?`1px solid ${T.coral}`:`1px solid ${T.cardBorder}`,borderRadius:"10px",padding:"20px 24px",cursor:"pointer",transition:"all .15s",display:"flex",alignItems:"center",gap:"20px"}}>
                     <span style={{fontSize:"24px",flexShrink:0}}>{m.icon}</span>
                     <div>
                       <div style={{fontSize:"20px",color:mode===m.id?T.text:T.textSecondary,fontWeight:"600",marginBottom:"3px"}}>{m.label}</div>
@@ -663,16 +723,17 @@ Write ONLY the sections above. No labels, no commentary, no extra text.`;
                   </div>
                 ))}
               </div>
-              {mode&&<button onClick={()=>setStep(mode==="editor"?"input":"configure")} style={primary(T.red)}>Continue →</button>}
+              
             </div>}
 
             {/* CONFIGURE */}
             {step==="configure"&&d&&<div style={{animation:"fadeUp .4s ease"}}>
               <div style={{marginBottom:"40px"}}>
-                <h1 style={{fontSize:"48px",fontWeight:"700",color:T.text,margin:"0 0 8px",letterSpacing:"-0.5px",fontFamily:"'League Spartan',sans-serif"}}>{d.name}</h1>
-                <p style={{fontSize:"17px",color:T.textMuted,margin:0,fontFamily:"'League Spartan',sans-serif",letterSpacing:"1px"}}>CONFIGURE THIS EPISODE</p>
+                <h1 style={{fontSize:"48px",fontWeight:"700",color:T.text,margin:"0 0 8px",letterSpacing:"-0.5px",fontFamily:"'Inter', ui-sans-serif, system-ui, sans-serif"}}>{d.name}</h1>
+                <p style={{fontSize:"17px",color:T.textMuted,margin:0,fontFamily:"'Inter', ui-sans-serif, system-ui, sans-serif",letterSpacing:"1px"}}>CONFIGURE THIS EPISODE</p>
               </div>
               {mode!=="clips"&&<div style={{marginBottom:"20px"}}>
+                {d?.publishDay&&d?.publishTime&&d?.publishTz&&(()=>{try{const sched=formatPublishSchedule(d);if(!sched)return null;return(<div style={{background:T.coralSoft,border:"1px solid "+T.coralMid,borderRadius:"8px",padding:"12px 16px",marginBottom:"20px",display:"flex",alignItems:"center",gap:"10px"}}><span>📅</span><div><div style={{fontSize:"13px",color:T.coral,fontWeight:"600"}}>PUBLISH SCHEDULE</div><div style={{fontSize:"14px",color:T.textSecondary,marginTop:"2px"}}>{sched.showTime}{sched.isDifferent?" · "+sched.localTime+" your time":""}</div></div></div>);}catch{return null;}})()}
                 <label style={lbl}>Episode Number</label>
                 <input style={field} placeholder="e.g. 42 (optional)" value={ep} onChange={e=>setEp(e.target.value)}/>
               </div>}
@@ -680,7 +741,7 @@ Write ONLY the sections above. No labels, no commentary, no extra text.`;
                 <label style={lbl}>Episode Type</label>
                 <div style={{display:"flex",gap:"10px"}}>
                   {[true,false].map(v=>(
-                    <button key={String(v)} onClick={()=>setGuest(v)} style={{flex:1,padding:"14px",background:guest===v?`${d.clr}18`:T.card,border:guest===v?`1px solid ${d.clr}`:`1px solid ${T.cardBorder}`,borderRadius:"8px",color:guest===v?T.text:T.textSecondary,fontSize:"14px",cursor:"pointer",fontFamily:"'League Spartan',sans-serif",fontWeight:guest===v?"700":"400",letterSpacing:"1px",transition:"all .15s"}}>
+                    <button key={String(v)} onClick={()=>setGuest(v)} style={{flex:1,padding:"14px",background:guest===v?`${d.clr}18`:T.card,border:guest===v?`1px solid ${d.clr}`:`1px solid ${T.cardBorder}`,borderRadius:"8px",color:guest===v?T.text:T.textSecondary,fontSize:"14px",cursor:"pointer",fontFamily:"'Inter', ui-sans-serif, system-ui, sans-serif",fontWeight:guest===v?"700":"400",letterSpacing:"1px",transition:"all .15s"}}>
                       {v?"GUEST EPISODE":"SOLO / HOST ONLY"}
                     </button>
                   ))}
@@ -691,7 +752,7 @@ Write ONLY the sections above. No labels, no commentary, no extra text.`;
                   <label style={lbl}>Platforms for Clips</label>
                   <div style={{display:"flex",flexWrap:"wrap",gap:"8px"}}>
                     {["YouTube","Instagram","Facebook","TikTok","Spotify"].map(p=>{const on=clipPlatforms.includes(p);return(
-                      <button key={p} onClick={()=>setClipPlatforms(prev=>on&&prev.length>1?prev.filter(x=>x!==p):on?prev:[...prev,p])} style={{padding:"8px 18px",background:on?`${d.clr}18`:T.card,border:on?`1px solid ${d.clr}`:`1px solid ${T.cardBorder}`,borderRadius:"6px",fontSize:"13px",color:on?d.clr:T.textMuted,fontFamily:"'League Spartan',sans-serif",cursor:"pointer",fontWeight:on?"700":"400",transition:"all .15s",letterSpacing:"1px"}}>
+                      <button key={p} onClick={()=>setClipPlatforms(prev=>on&&prev.length>1?prev.filter(x=>x!==p):on?prev:[...prev,p])} style={{padding:"8px 18px",background:on?`${d.clr}18`:T.card,border:on?`1px solid ${d.clr}`:`1px solid ${T.cardBorder}`,borderRadius:"6px",fontSize:"13px",color:on?d.clr:T.textMuted,fontFamily:"'Inter', ui-sans-serif, system-ui, sans-serif",cursor:"pointer",fontWeight:on?"700":"400",transition:"all .15s",letterSpacing:"1px"}}>
                         {on?"✓ ":""}{p.toUpperCase()}
                       </button>
                     );})}
@@ -703,7 +764,7 @@ Write ONLY the sections above. No labels, no commentary, no extra text.`;
                   <div style={{fontSize:"14px",color:T.textSecondary,fontFamily:"'EB Garamond',serif",fontStyle:"italic",marginBottom:"8px"}}>Configured in Admin — generating content for all selected platforms</div>
                   <div style={{display:"flex",flexWrap:"wrap",gap:"8px"}}>
                     {[...(d.platforms?.social||[]),...(d.platforms?.podcast||[]),...(d.platforms?.community||[]),...(d.platforms?.email||[]),...(d.platforms?.blog||[]),...(d.platforms?.extras||[])].map(p=>(
-                      <span key={p} style={{padding:"6px 14px",background:`${d.clr}18`,border:`1px solid ${d.clr}44`,borderRadius:"6px",fontSize:"12px",color:d.clr,fontFamily:"'League Spartan',sans-serif",fontWeight:"600",letterSpacing:"1px"}}>✓ {p.toUpperCase()}</span>
+                      <span key={p} style={{padding:"6px 14px",background:`${d.clr}18`,border:`1px solid ${d.clr}44`,borderRadius:"6px",fontSize:"12px",color:d.clr,fontFamily:"'Inter', ui-sans-serif, system-ui, sans-serif",fontWeight:"600",letterSpacing:"1px"}}>✓ {p.toUpperCase()}</span>
                     ))}
                   </div>
                 </div>
@@ -714,8 +775,8 @@ Write ONLY the sections above. No labels, no commentary, no extra text.`;
             {/* CLIPS SETUP */}
             {step==="clips-setup"&&d&&<div style={{animation:"fadeUp .4s ease"}}>
               <div style={{marginBottom:"40px"}}>
-                <h1 style={{fontSize:"48px",fontWeight:"700",color:T.text,margin:"0 0 8px",letterSpacing:"-0.5px",fontFamily:"'League Spartan',sans-serif"}}>How many clips?</h1>
-                <p style={{fontSize:"17px",color:T.textMuted,margin:0,fontFamily:"'League Spartan',sans-serif",letterSpacing:"1px"}}>{d.name.toUpperCase()} · {clipPlatforms.join(", ").toUpperCase()}</p>
+                <h1 style={{fontSize:"48px",fontWeight:"700",color:T.text,margin:"0 0 8px",letterSpacing:"-0.5px",fontFamily:"'Inter', ui-sans-serif, system-ui, sans-serif"}}>How many clips?</h1>
+                <p style={{fontSize:"17px",color:T.textMuted,margin:0,fontFamily:"'Inter', ui-sans-serif, system-ui, sans-serif",letterSpacing:"1px"}}>{d.name.toUpperCase()} · {clipPlatforms.join(", ").toUpperCase()}</p>
               </div>
               <label style={lbl}>Number of Clips</label>
               <div style={{display:"flex",flexWrap:"wrap",gap:"8px",marginBottom:"32px"}}>
@@ -731,15 +792,15 @@ Write ONLY the sections above. No labels, no commentary, no extra text.`;
               {mode==="clips"?(
                 <>
                   <div style={{marginBottom:"32px"}}>
-                    <h1 style={{fontSize:"48px",fontWeight:"700",color:T.text,margin:"0 0 8px",letterSpacing:"-0.5px",fontFamily:"'League Spartan',sans-serif"}}>Paste your clips</h1>
-                    <p style={{fontSize:"17px",color:T.textMuted,margin:0,fontFamily:"'League Spartan',sans-serif",letterSpacing:"1px"}}>{d.name.toUpperCase()} · {clipPlatforms.join(", ").toUpperCase()}</p>
+                    <h1 style={{fontSize:"48px",fontWeight:"700",color:T.text,margin:"0 0 8px",letterSpacing:"-0.5px",fontFamily:"'Inter', ui-sans-serif, system-ui, sans-serif"}}>Paste your clips</h1>
+                    <p style={{fontSize:"17px",color:T.textMuted,margin:0,fontFamily:"'Inter', ui-sans-serif, system-ui, sans-serif",letterSpacing:"1px"}}>{d.name.toUpperCase()} · {clipPlatforms.join(", ").toUpperCase()}</p>
                   </div>
-                  {err&&<div style={{background:"#D94F4F18",border:"1px solid #D94F4F44",borderRadius:"8px",padding:"12px 16px",color:"#F09090",fontSize:"14px",marginBottom:"16px",fontFamily:"'League Spartan',sans-serif"}}>{err}</div>}
+                  {err&&<div style={{background:"#D94F4F18",border:"1px solid #D94F4F44",borderRadius:"8px",padding:"12px 16px",color:"#F09090",fontSize:"14px",marginBottom:"16px",fontFamily:"'Inter', ui-sans-serif, system-ui, sans-serif"}}>{err}</div>}
                   {Array.from({length:clipCount},(_,i)=>(
                     <div key={i} style={{marginBottom:"16px"}}>
                       <label style={{...lbl,color:d.clr}}>Clip {i+1}</label>
                       <textarea style={{...field,minHeight:"120px",lineHeight:"1.6",resize:"vertical",borderColor:clipTexts[i].trim()?`${d.clr}55`:T.cardBorder}} placeholder={`Paste transcript for Clip ${i+1}...`} value={clipTexts[i]} onChange={e=>{const next=[...clipTexts];next[i]=e.target.value;setClipTexts(next);}}/>
-                      {clipTexts[i].trim()&&<div style={{fontSize:"11px",color:T.textMuted,marginTop:"4px",fontFamily:"'League Spartan',sans-serif",letterSpacing:"1px"}}>{clipTexts[i].trim().split(/\s+/).length} WORDS</div>}
+                      {clipTexts[i].trim()&&<div style={{fontSize:"11px",color:T.textMuted,marginTop:"4px",fontFamily:"'Inter', ui-sans-serif, system-ui, sans-serif",letterSpacing:"1px"}}>{clipTexts[i].trim().split(/\s+/).length} WORDS</div>}
                     </div>
                   ))}
                   <button onClick={genClips} disabled={clipTexts.slice(0,clipCount).every(t=>!t.trim())} style={{...primary(T.red),opacity:clipTexts.slice(0,clipCount).some(t=>t.trim())?1:.35}}>Generate {clipCount} Clip{clipCount>1?"s":""} →</button>
@@ -747,16 +808,16 @@ Write ONLY the sections above. No labels, no commentary, no extra text.`;
               ):(
                 <>
                   <div style={{marginBottom:"32px"}}>
-                    <h1 style={{fontSize:"48px",fontWeight:"700",color:T.text,margin:"0 0 8px",letterSpacing:"-0.5px",fontFamily:"'League Spartan',sans-serif"}}>{mode==="editor"?"Paste the raw transcript":"Add the transcript"}</h1>
-                    <p style={{fontSize:"17px",color:T.textMuted,margin:0,fontFamily:"'League Spartan',sans-serif",letterSpacing:"1px"}}>{mode==="editor"?d.name.toUpperCase()+" · EDITOR BRIEF":`${d.name.toUpperCase()} · ${(MODES.find(m=>m.id===mode)?.label||"").toUpperCase()}${mode!=="clips"?` · ${guest?"GUEST":"SOLO"}`:""}${ep?` · EP ${ep}`:""}`}</p>
+                    <h1 style={{fontSize:"48px",fontWeight:"700",color:T.text,margin:"0 0 8px",letterSpacing:"-0.5px",fontFamily:"'Inter', ui-sans-serif, system-ui, sans-serif"}}>{mode==="editor"?"Paste the raw transcript":"Add the transcript"}</h1>
+                    <p style={{fontSize:"17px",color:T.textMuted,margin:0,fontFamily:"'Inter', ui-sans-serif, system-ui, sans-serif",letterSpacing:"1px"}}>{mode==="editor"?d.name.toUpperCase()+" · EDITOR BRIEF":`${d.name.toUpperCase()} · ${(MODES.find(m=>m.id===mode)?.label||"").toUpperCase()}${mode!=="clips"?` · ${guest?"GUEST":"SOLO"}`:""}${ep?` · EP ${ep}`:""}`}</p>
                   </div>
-                  {err&&<div style={{background:"#D94F4F18",border:"1px solid #D94F4F44",borderRadius:"8px",padding:"12px 16px",color:"#F09090",fontSize:"14px",marginBottom:"16px",fontFamily:"'League Spartan',sans-serif"}}>{err}</div>}
+                  {err&&<div style={{background:"#D94F4F18",border:"1px solid #D94F4F44",borderRadius:"8px",padding:"12px 16px",color:"#F09090",fontSize:"14px",marginBottom:"16px",fontFamily:"'Inter', ui-sans-serif, system-ui, sans-serif"}}>{err}</div>}
                   {mode==="editor"&&<div style={{marginBottom:"24px"}}>
                     <label style={lbl}>How many clip suggestions?</label>
                     <div style={{display:"flex",flexWrap:"wrap",gap:"8px"}}>
                       {[3,4,5,6,7,8,9,10].map(n=>(
                         <button key={n} onClick={()=>setEditorClipCount(n)}
-                          style={{padding:"10px 20px",background:editorClipCount===n?T.coral:T.card,border:"1px solid "+(editorClipCount===n?T.coral:T.cardBorder),borderRadius:"6px",color:editorClipCount===n?"#fff":T.textSecondary,fontSize:"15px",fontWeight:editorClipCount===n?"700":"400",cursor:"pointer",fontFamily:"'League Spartan',sans-serif",letterSpacing:"1px",transition:"all .15s"}}>
+                          style={{padding:"10px 20px",background:editorClipCount===n?T.coral:T.card,border:"1px solid "+(editorClipCount===n?T.coral:T.cardBorder),borderRadius:"6px",color:editorClipCount===n?"#fff":T.textSecondary,fontSize:"15px",fontWeight:editorClipCount===n?"700":"400",cursor:"pointer",fontFamily:"'Inter', ui-sans-serif, system-ui, sans-serif",letterSpacing:"1px",transition:"all .15s"}}>
                           {n}
                         </button>
                       ))}
@@ -766,11 +827,11 @@ Write ONLY the sections above. No labels, no commentary, no extra text.`;
                     <input ref={fileRef} type="file" accept=".txt,.md" style={{display:"none"}} onChange={handleFileInput}/>
                     <div style={{fontSize:"24px",marginBottom:"8px"}}>{dragging?"📥":"📄"}</div>
                     <div style={{fontSize:"14px",color:T.textSecondary,marginBottom:"4px"}}>Drag & drop a transcript file</div>
-                    <div style={{fontSize:"12px",color:T.textMuted,fontFamily:"'League Spartan',sans-serif",letterSpacing:"1px"}}>OR CLICK TO BROWSE · .TXT FILES</div>
+                    <div style={{fontSize:"12px",color:T.textMuted,fontFamily:"'Inter', ui-sans-serif, system-ui, sans-serif",letterSpacing:"1px"}}>OR CLICK TO BROWSE · .TXT FILES</div>
                   </div>
-                  <div style={{textAlign:"center",fontSize:"12px",color:T.textMuted,marginBottom:"16px",fontFamily:"'League Spartan',sans-serif",letterSpacing:"1px"}}>— OR PASTE BELOW —</div>
+                  <div style={{textAlign:"center",fontSize:"12px",color:T.textMuted,marginBottom:"16px",fontFamily:"'Inter', ui-sans-serif, system-ui, sans-serif",letterSpacing:"1px"}}>— OR PASTE BELOW —</div>
                   <textarea style={{...field,minHeight:"220px",lineHeight:"1.7",resize:"vertical"}} placeholder={mode==="editor"?"Paste the raw transcript here — include timestamps if available (e.g. from Descript or Rev). The more accurate the timestamps, the better the clip suggestions...":"Paste the full episode transcript here..."} value={tx} onChange={e=>setTx(e.target.value)}/>
-                  {tx.length>0&&<div style={{fontSize:"15px",color:T.textMuted,marginTop:"6px",fontFamily:"'League Spartan',sans-serif",letterSpacing:"1px"}}>{Math.round(tx.split(/\s+/).length).toLocaleString()} WORDS</div>}
+                  {tx.length>0&&<div style={{fontSize:"15px",color:T.textMuted,marginTop:"6px",fontFamily:"'Inter', ui-sans-serif, system-ui, sans-serif",letterSpacing:"1px"}}>{Math.round(tx.split(/\s+/).length).toLocaleString()} WORDS</div>}
                   <button onClick={gen} disabled={!tx.trim()} style={{...primary(T.red),opacity:tx.trim()?1:.35}}>Generate {MODES.find(m=>m.id===mode)?.label} →</button>
                 </>
               )}
@@ -780,16 +841,16 @@ Write ONLY the sections above. No labels, no commentary, no extra text.`;
             {step==="generating"&&<div style={{textAlign:"center",padding:"100px 20px",animation:"fadeUp .4s ease"}}>
               <div style={{width:"40px",height:"40px",border:`2px solid ${T.cardBorder}`,borderTopColor:T.coral,borderRadius:"50%",animation:"spin 1s linear infinite",margin:"0 auto 28px"}}/>
               <h2 style={{fontSize:"34px",fontWeight:"400",color:T.text,marginBottom:"8px",letterSpacing:"-0.5px"}}>Building your content package</h2>
-              <p style={{fontSize:"18px",color:T.textMuted,margin:"0 0 8px",fontFamily:"'League Spartan',sans-serif",letterSpacing:"1px"}}>{d?.name.toUpperCase()} SHOW DNA</p>
-              <p style={{fontSize:"13px",color:T.coral,animation:"pulse 2s ease-in-out infinite",fontFamily:"'League Spartan',sans-serif",letterSpacing:"1px"}}>THIS TAKES ABOUT 30 SECONDS</p>
+              <p style={{fontSize:"18px",color:T.textMuted,margin:"0 0 8px",fontFamily:"'Inter', ui-sans-serif, system-ui, sans-serif",letterSpacing:"1px"}}>{d?.name.toUpperCase()} SHOW DNA</p>
+              <p style={{fontSize:"13px",color:T.coral,animation:"pulse 2s ease-in-out infinite",fontFamily:"'Inter', ui-sans-serif, system-ui, sans-serif",letterSpacing:"1px"}}>THIS TAKES ABOUT 30 SECONDS</p>
             </div>}
 
             {/* RESULT */}
             {step==="result"&&<div style={{animation:"fadeUp .4s ease"}}>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:"28px",flexWrap:"wrap",gap:"12px"}}>
                 <div>
-                  <h2 style={{fontSize:"36px",fontWeight:"700",color:T.text,margin:"0 0 4px",letterSpacing:"-0.5px",fontFamily:"'League Spartan',sans-serif"}}>{mode==="clips"?"Clips Ready":"Content Package Ready"}</h2>
-                  <p style={{fontSize:"16px",color:T.textMuted,margin:0,fontFamily:"'League Spartan',sans-serif",letterSpacing:"1px"}}>{d?.name.toUpperCase()}{ep?` · EP ${ep}`:""}{mode==="clips"?` · ${clipResults.filter(r=>!r.skipped).length} CLIPS`:` · ${secs.length} SECTIONS`}</p>
+                  <h2 style={{fontSize:"36px",fontWeight:"700",color:T.text,margin:"0 0 4px",letterSpacing:"-0.5px",fontFamily:"'Inter', ui-sans-serif, system-ui, sans-serif"}}>{mode==="clips"?"Clips Ready":"Content Package Ready"}</h2>
+                  <p style={{fontSize:"16px",color:T.textMuted,margin:0,fontFamily:"'Inter', ui-sans-serif, system-ui, sans-serif",letterSpacing:"1px"}}>{d?.name.toUpperCase()}{ep?` · EP ${ep}`:""}{mode==="clips"?` · ${clipResults.filter(r=>!r.skipped).length} CLIPS`:` · ${secs.length} SECTIONS`}</p>
                 </div>
                 <div style={{display:"flex",gap:"8px"}}>
                   {mode!=="clips"&&<button onClick={()=>{copyText(raw);setCpAll(true);setTimeout(()=>setCpAll(false),2000);}} style={{...ghost,background:cpAll?T.coralSoft:"transparent",borderColor:cpAll?T.coralMid:T.cardBorder,color:cpAll?T.coral:T.textMuted}}>{cpAll?"✓ COPIED":"COPY ALL"}</button>}
@@ -797,13 +858,13 @@ Write ONLY the sections above. No labels, no commentary, no extra text.`;
                   <button onClick={()=>{setStep(mode==="clips"?"clips-setup":"input");setRaw("");setSecs([]);setClipResults([]);}} style={ghost}>{mode==="clips"?"NEW CLIPS":"NEW EPISODE"}</button>
                 </div>
               </div>
-              {err&&<div style={{background:"#D94F4F18",border:"1px solid #D94F4F44",borderRadius:"8px",padding:"12px 16px",color:"#F09090",fontSize:"14px",marginBottom:"12px",fontFamily:"'League Spartan',sans-serif"}}>{err}</div>}
+              {err&&<div style={{background:"#D94F4F18",border:"1px solid #D94F4F44",borderRadius:"8px",padding:"12px 16px",color:"#F09090",fontSize:"14px",marginBottom:"12px",fontFamily:"'Inter', ui-sans-serif, system-ui, sans-serif"}}>{err}</div>}
               {mode==="clips"?(
                 <div>
                   {clipResults.map((clip,i)=>clip.skipped?null:(
                     <div key={i} style={{background:T.card,border:`1px solid ${T.cardBorder}`,borderRadius:"10px",marginBottom:"10px",overflow:"hidden"}}>
                       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 20px",borderBottom:`1px solid ${T.cardBorder}`,background:T.surface}}>
-                        <span style={{fontSize:"11px",fontFamily:"'League Spartan',sans-serif",letterSpacing:"2px",color:d.clr,fontWeight:"700"}}>✂️ CLIP {clip.index}</span>
+                        <span style={{fontSize:"11px",fontFamily:"'Inter', ui-sans-serif, system-ui, sans-serif",letterSpacing:"2px",color:d.clr,fontWeight:"700"}}>✂️ CLIP {clip.index}</span>
                         <button onClick={()=>copyText(clip.content)} style={ghost}>COPY</button>
                       </div>
                       <div style={{padding:"20px 24px"}}>{renderContent(clip.content)}</div>
@@ -814,29 +875,29 @@ Write ONLY the sections above. No labels, no commentary, no extra text.`;
                 <>
                   <div>{secs.map((s,i)=><Sec key={s.id+i} s={s} clr={clr}/>)}</div>
                   <div style={{display:"flex",gap:"10px",marginTop:"16px",flexWrap:"wrap"}}>
-                    <button onClick={()=>setEditing(!editing)} style={{flex:1,padding:"13px",background:editing?T.coralSoft:T.card,border:`1px solid ${editing?T.coralMid:T.cardBorder}`,borderRadius:"8px",color:editing?T.coral:T.textSecondary,fontSize:"14px",cursor:"pointer",fontFamily:"'League Spartan',sans-serif",letterSpacing:"1.5px",textTransform:"uppercase",transition:"all .2s"}}>{editing?"CLOSE EDITOR":"✏️  REVISE A SECTION"}</button>
-                    {mode!=="editor"&&<button onClick={()=>{dlDoc(raw,`${d?.name}${ep?` — Ep ${ep}`:""} Content Package`);setDlOk(true);setTimeout(()=>setDlOk(false),2500);}} style={{flex:1,padding:"13px",background:dlOk?T.coralSoft:T.card,border:`1px solid ${dlOk?T.coralMid:T.cardBorder}`,borderRadius:"8px",color:dlOk?T.coral:T.textSecondary,fontSize:"14px",cursor:"pointer",fontFamily:"'League Spartan',sans-serif",letterSpacing:"1.5px",textTransform:"uppercase",transition:"all .2s"}}>{dlOk?"✓ DOWNLOADED":"📄  DOWNLOAD WORD DOC"}</button>}
+                    <button onClick={()=>setEditing(!editing)} style={{flex:1,padding:"13px",background:editing?T.coralSoft:T.card,border:`1px solid ${editing?T.coralMid:T.cardBorder}`,borderRadius:"8px",color:editing?T.coral:T.textSecondary,fontSize:"14px",cursor:"pointer",fontFamily:"'Inter', ui-sans-serif, system-ui, sans-serif",letterSpacing:"1.5px",textTransform:"uppercase",transition:"all .2s"}}>{editing?"CLOSE EDITOR":"✏️  REVISE A SECTION"}</button>
+                    {mode!=="editor"&&<button onClick={()=>{dlDoc(raw,`${d?.name}${ep?` — Ep ${ep}`:""} Content Package`);setDlOk(true);setTimeout(()=>setDlOk(false),2500);}} style={{flex:1,padding:"13px",background:dlOk?T.coralSoft:T.card,border:`1px solid ${dlOk?T.coralMid:T.cardBorder}`,borderRadius:"8px",color:dlOk?T.coral:T.textSecondary,fontSize:"14px",cursor:"pointer",fontFamily:"'Inter', ui-sans-serif, system-ui, sans-serif",letterSpacing:"1.5px",textTransform:"uppercase",transition:"all .2s"}}>{dlOk?"✓ DOWNLOADED":"📄  DOWNLOAD WORD DOC"}</button>}
                   </div>
                   {mode==="editor"&&<div style={{background:T.card,border:"1px solid "+T.cardBorder,borderRadius:"10px",padding:"18px 20px",marginTop:"14px"}}>
-                    <div style={{fontSize:"13px",color:T.coral,letterSpacing:"2px",fontFamily:"'League Spartan',sans-serif",marginBottom:"12px",fontWeight:"700"}}>🎬 SEND CLIPS TO DESCRIPT</div>
-                    <div style={{fontSize:"13px",color:T.textSecondary,fontFamily:"'EB Garamond',Georgia,serif",fontStyle:"italic",marginBottom:"12px"}}>Paste your Descript Project ID (last part of the project URL) to highlight clips in Descript.</div>
+                    <div style={{fontSize:"13px",color:T.coral,letterSpacing:"2px",fontFamily:"'Inter', ui-sans-serif, system-ui, sans-serif",marginBottom:"12px",fontWeight:"700"}}>🎬 SEND CLIPS TO DESCRIPT</div>
+                    <div style={{fontSize:"13px",color:T.textSecondary,fontFamily:"'Inter', ui-sans-serif, system-ui, sans-serif",fontStyle:"italic",marginBottom:"12px"}}>Paste your Descript Project ID (last part of the project URL) to highlight clips in Descript.</div>
                     <div style={{display:"flex",gap:"8px",marginBottom:"8px",flexWrap:"wrap"}}>
                       <input value={descriptProjectId} onChange={e=>setDescriptProjectId(e.target.value)} placeholder="Project ID (from Descript URL)"
                         style={{flex:1,minWidth:"160px",background:T.surface,border:"1px solid "+T.cardBorder,borderRadius:"6px",padding:"10px 12px",color:T.text,fontSize:"13px",outline:"none",fontFamily:"monospace"}}/>
                       <button onClick={()=>{const clipSec=secs.find(s=>s.id==="editor-clips");sendToDescript(clipSec?.content||raw);}}
                         disabled={descriptSending||!descriptProjectId.trim()}
-                        style={{padding:"10px 20px",background:descriptSending||!descriptProjectId.trim()?"#555":T.coral,border:"none",borderRadius:"6px",color:"#fff",fontSize:"13px",fontWeight:"700",cursor:descriptSending||!descriptProjectId.trim()?"not-allowed":"pointer",fontFamily:"'League Spartan',sans-serif",letterSpacing:"1px",whiteSpace:"nowrap"}}>
+                        style={{padding:"10px 20px",background:descriptSending||!descriptProjectId.trim()?"#555":T.coral,border:"none",borderRadius:"6px",color:"#fff",fontSize:"13px",fontWeight:"700",cursor:descriptSending||!descriptProjectId.trim()?"not-allowed":"pointer",fontFamily:"'Inter', ui-sans-serif, system-ui, sans-serif",letterSpacing:"1px",whiteSpace:"nowrap"}}>
                         {descriptSending?"Sending...":"Send to Descript →"}
                       </button>
                     </div>
                     {descriptStatus&&<div style={{fontSize:"13px",color:descriptStatus.startsWith("Sent")||descriptStatus.startsWith("Job")?"#52B788":"#F09090",fontFamily:"monospace",marginTop:"6px"}}>{descriptStatus}</div>}
-                    <div style={{fontSize:"11px",color:T.textMuted,fontFamily:"'League Spartan',sans-serif",letterSpacing:"1px",marginTop:"8px"}}>API KEY: Settings → API Tokens in Descript · PROJECT ID: Last part of your Descript project URL</div>
+                    <div style={{fontSize:"11px",color:T.textMuted,fontFamily:"'Inter', ui-sans-serif, system-ui, sans-serif",letterSpacing:"1px",marginTop:"8px"}}>API KEY: Settings → API Tokens in Descript · PROJECT ID: Last part of your Descript project URL</div>
                   </div>}
                   {editing&&<div style={{background:T.surface,border:`1px solid ${T.cardBorder}`,borderRadius:"10px",padding:"24px",marginTop:"10px",animation:"fadeUp .3s ease"}}>
                     <label style={lbl}>Section to Revise</label>
                     <div style={{display:"flex",flexWrap:"wrap",gap:"6px",marginBottom:"16px"}}>
                       {ED.filter(s=>(!s.g||guest)&&(!s.pm||false)&&(!s.cm||mode==="clips")).map(s=>(
-                        <button key={s.id} onClick={()=>setESec(s.id)} style={{padding:"6px 14px",background:eSec===s.id?`${clr}18`:T.card,border:eSec===s.id?`1px solid ${clr}55`:`1px solid ${T.cardBorder}`,borderRadius:"6px",color:eSec===s.id?T.text:T.textMuted,fontSize:"12px",cursor:"pointer",fontFamily:"'League Spartan',sans-serif",letterSpacing:"1px",transition:"all .15s"}}>{s.l}</button>
+                        <button key={s.id} onClick={()=>setESec(s.id)} style={{padding:"6px 14px",background:eSec===s.id?`${clr}18`:T.card,border:eSec===s.id?`1px solid ${clr}55`:`1px solid ${T.cardBorder}`,borderRadius:"6px",color:eSec===s.id?T.text:T.textMuted,fontSize:"12px",cursor:"pointer",fontFamily:"'Inter', ui-sans-serif, system-ui, sans-serif",letterSpacing:"1px",transition:"all .15s"}}>{s.l}</button>
                       ))}
                     </div>
                     {eSec&&<>
@@ -855,8 +916,8 @@ Write ONLY the sections above. No labels, no commentary, no extra text.`;
 
       {/* FOOTER */}
       <div style={{padding:"14px 40px",background:T.surface,borderTop:`1px solid ${T.cardBorder}`,display:"flex",justifyContent:"space-between",alignItems:"center",flexShrink:0}}>
-        <span style={{fontSize:"15px",color:T.textSecondary,fontFamily:"'League Spartan',sans-serif",letterSpacing:"1.5px"}}>© {new Date().getFullYear()} PODCAST IMPACT STUDIO</span>
-        <span style={{fontSize:"15px",color:T.textSecondary,fontFamily:"'League Spartan',sans-serif",letterSpacing:"1px"}}>CONTENT CREATOR</span>
+        <span style={{fontSize:"15px",color:T.textSecondary,fontFamily:"'Inter', ui-sans-serif, system-ui, sans-serif",letterSpacing:"1.5px"}}>© {new Date().getFullYear()} PODCAST IMPACT STUDIO</span>
+        <span style={{fontSize:"15px",color:T.textSecondary,fontFamily:"'Inter', ui-sans-serif, system-ui, sans-serif",letterSpacing:"1px"}}>CONTENT CREATOR</span>
       </div>
     </div>
   );

@@ -5,61 +5,30 @@ import { supabase } from "./lib/supabase";
 const ANTHROPIC_KEY = import.meta.env.VITE_ANTHROPIC_API_KEY;
 
 const T = {
-  bg: "#1A1A1A", surface: "#242424", card: "#2C2C2C", cardBorder: "#3A3A3A",
-  text: "#FFFFFF", textSecondary: "#E0E0E0", textMuted: "#999",
-  coral: "#FF3131", coralSoft: "#FF313118", coralMid: "#FF313144",
-};
-const LS = { fontFamily: "'League Spartan', sans-serif" };
-const GA = { fontFamily: "'EB Garamond', Georgia, serif" };
+  bg: "#1A1A1A", surface: "#212121", card: "#2A2A2A", cardBorder: "#3A3A3A",
+  text: "#FFFFFF", textSecondary: "#CECECE", textMuted: "#8E8EA0",
+  coral: "#D97757", coralSoft: "#D9775718", coralMid: "#D9775740",
+};;
+const LS = { fontFamily: "'Inter', ui-sans-serif, system-ui, sans-serif" };
+const GA = { fontFamily: "'Inter', ui-sans-serif, system-ui, sans-serif" };
 
 // Platform hub structure
 export const PLATFORM_CATEGORIES = [
-  {
-    id: "podcast",
-    label: "Podcast Hosting",
-    description: "Where your episode is distributed",
-    platforms: ["Apple Podcasts", "Spotify", "Spotify for Creators", "Amazon Music", "iHeart Radio"],
-  },
-  {
-    id: "social",
-    label: "Social Media",
-    description: "Platform-optimized posts for each selected",
-    platforms: ["YouTube", "Instagram", "Facebook", "TikTok", "LinkedIn", "X (Twitter)", "Pinterest", "Threads", "Reddit"],
-  },
-  {
-    id: "community",
-    label: "Community Platform",
-    description: "Companion post, feed prompts, polls, conversation starters",
-    platforms: ["Patreon", "Circle", "Mighty Networks", "Kajabi", "Skool", "Facebook Group"],
-    single: true, // only one can be selected
-  },
-  {
-    id: "email",
-    label: "Email & Newsletter",
-    description: "Subject, preview, body, CTA, FAQ section",
-    platforms: ["Newsletter"],
-  },
-  {
-    id: "blog",
-    label: "Web & Blog",
-    description: "Full blog post with SEO meta and FAQ schema",
-    platforms: ["Blog Article"],
-  },
-  {
-    id: "extras",
-    label: "Extras",
-    description: "Additional content assets",
-    platforms: ["Quote Cards", "Guest Kit"],
-  },
+  { id: "podcast", label: "Podcast Hosting", description: "Where your RSS feed is hosted", platforms: ["Spotify for Creators", "Buzzsprout", "Libsyn", "Podbean", "Captivate", "Transistor", "RSS.com", "Simplecast", "Castos"] },
+  { id: "social", label: "Social Media", description: "Platform-optimized posts for each selected", platforms: ["YouTube", "Instagram", "Facebook", "TikTok", "LinkedIn", "X (Twitter)", "Pinterest", "Threads", "Reddit"] },
+  { id: "community", label: "Community Platform", description: "Companion post, feed prompts, polls, conversation starters", platforms: ["Patreon", "Circle", "Mighty Networks", "Kajabi", "Skool", "Facebook Group"], single: true },
+  { id: "email", label: "Email & Newsletter", description: "Subject, preview, body, CTA, FAQ section", platforms: ["Newsletter"] },
+  { id: "blog", label: "Web & Blog", description: "Full blog post with SEO meta and FAQ schema", platforms: ["Blog Article"] },
+  { id: "extras", label: "Social Media Content Add-Ons", description: "Additional content assets generated from each episode", platforms: ["Quote Cards", "Poll Questions", "Story Slides", "Engagement Prompts", "Guest Kit", "Key Takeaway Graphics"] },
 ];
 
 export const DEFAULT_PLATFORMS = {
-  podcast: ["Apple Podcasts", "Spotify"],
+  podcast: [],
   social: ["YouTube", "Instagram", "Facebook"],
   community: [],
   email: ["Newsletter"],
   blog: [],
-  extras: ["Quote Cards"],
+  extras: [],
 };
 
 const DEFAULT_SN_ELEMENTS = [
@@ -275,6 +244,232 @@ function BoilerplateEditor({ value, onChange }) {
   );
 }
 
+
+function SettingsView({ globalSettings, setGlobalSettings, saveGlobalSettings, globalSettingsSaved, globalSettingsLoading }) {
+  const [activeSection, setActiveSection] = useState("integrations");
+  const [team, setTeam] = useState(globalSettings.team || [
+    { name: "Tamar Routly", role: "Owner", email: "tamar@podcastimpactstudio.com" },
+    { name: "Alysse Bryson", role: "Editor", email: "alysse@thesobercurator.com" },
+    { name: "Mark Camilon", role: "Editor", email: "mark@podcastimpactstudio.com" },
+  ]);
+  const [addingMember, setAddingMember] = useState(false);
+  const [newMember, setNewMember] = useState({ email: "", role: "editor" });
+  const [editingIdx, setEditingIdx] = useState(null);
+  const [editForm, setEditForm] = useState({});
+  const [inviting, setInviting] = useState(false);
+  const [inviteMsg, setInviteMsg] = useState("");
+
+  async function sendInvite() {
+    if (!newMember.email.trim()) { setInviteMsg("Please enter an email address."); return; }
+    setInviting(true); setInviteMsg("");
+    try {
+      const { error } = await supabase.auth.admin.inviteUserByEmail(newMember.email.trim().toLowerCase(), {
+        data: { role: newMember.role }
+      });
+      if (error) throw error;
+      setInviteMsg("✓ Invite sent to " + newMember.email);
+      setNewMember({ email: "", role: "editor" });
+      setTimeout(() => { setAddingMember(false); setInviteMsg(""); }, 2000);
+    } catch (e) {
+      // inviteUserByEmail requires service_role key - use edge function fallback
+      // For now show a helpful message
+      setInviteMsg("Note: Invite emails require Supabase service role. Add " + newMember.email + " manually in Supabase Auth → Users.");
+    } finally {
+      setInviting(false);
+    }
+  }
+
+  const sections = [
+    { id: "integrations", label: "Integrations", icon: "🔌" },
+    { id: "workspace", label: "Workspace", icon: "🏢" },
+    { id: "team", label: "Team", icon: "👥" },
+    { id: "billing", label: "Billing", icon: "💳" },
+  ];
+
+  const inp = { width: "100%", background: T.surface, border: "1px solid " + T.cardBorder, borderRadius: "6px", padding: "9px 12px", color: T.text, fontSize: "14px", outline: "none", boxSizing: "border-box", fontFamily: "'Inter', ui-sans-serif, system-ui, sans-serif" };
+
+  function SaveBtn({ onClick }) {
+    return (
+      <button onClick={onClick || (() => saveGlobalSettings(globalSettings))}
+        style={{ padding: "10px 24px", background: T.coral, border: "none", borderRadius: "6px", color: "#fff", fontSize: "13px", fontWeight: "700", cursor: "pointer", fontFamily: "'Inter', ui-sans-serif, system-ui, sans-serif", letterSpacing: "1px", textTransform: "uppercase" }}>
+        {globalSettingsSaved ? "✓ Saved" : globalSettingsLoading ? "Saving..." : "Save"}
+      </button>
+    );
+  }
+
+  function saveTeam(updatedTeam) {
+    setTeam(updatedTeam);
+    saveGlobalSettings({ ...globalSettings, team: updatedTeam });
+  }
+
+  return (
+    <div style={{ flex: 1, display: "flex", overflow: "hidden" }}>
+      <div style={{ width: "200px", background: T.surface, borderRight: "1px solid " + T.cardBorder, flexShrink: 0, padding: "16px 8px" }}>
+        {sections.map(s => (
+          <button key={s.id} onClick={() => setActiveSection(s.id)}
+            style={{ width: "100%", display: "flex", alignItems: "center", gap: "10px", padding: "10px 14px", background: activeSection === s.id ? T.coralSoft : "transparent", border: "none", borderRadius: "6px", color: activeSection === s.id ? T.coral : T.textSecondary, fontSize: "14px", cursor: "pointer", textAlign: "left", marginBottom: "2px", fontFamily: "'Inter', ui-sans-serif, system-ui, sans-serif", fontWeight: activeSection === s.id ? "700" : "500", transition: "all .15s" }}>
+            <span>{s.icon}</span><span>{s.label}</span>
+          </button>
+        ))}
+      </div>
+      <div style={{ flex: 1, overflowY: "auto", padding: "32px" }}>
+
+        {activeSection === "integrations" && (
+          <div style={{ maxWidth: "680px" }}>
+            <div style={{ marginBottom: "28px" }}>
+              <div style={{ fontSize: "22px", fontWeight: "700", color: T.text, marginBottom: "6px" }}>Integrations</div>
+              <div style={{ fontSize: "15px", color: T.textMuted, fontStyle: "italic" }}>Connect external tools to enhance your workflow.</div>
+            </div>
+            <div style={{ background: T.card, border: "1px solid " + T.cardBorder, borderRadius: "12px", marginBottom: "16px", overflow: "hidden" }}>
+              <div style={{ padding: "20px 24px", borderBottom: "1px solid " + T.cardBorder, display: "flex", alignItems: "center", gap: "12px" }}>
+                <span style={{ fontSize: "22px" }}>🎬</span>
+                <div>
+                  <div style={{ fontSize: "15px", fontWeight: "700", color: T.text }}>Descript</div>
+                  <div style={{ fontSize: "13px", color: T.textMuted, fontStyle: "italic" }}>Automatically highlight clip timestamps in your Descript projects from the Editor Brief.</div>
+                </div>
+              </div>
+              <div style={{ padding: "20px 24px" }}>
+                <label style={{ fontSize: "12px", letterSpacing: "2px", textTransform: "uppercase", color: T.textMuted, marginBottom: "8px", display: "block" }}>API Key</label>
+                <input type="password" value={globalSettings.descriptApiKey || ""} onChange={e => setGlobalSettings(s => ({ ...s, descriptApiKey: e.target.value }))} placeholder="Paste your Descript API key..." style={{ ...inp, marginBottom: "8px", fontFamily: "monospace" }} />
+                <div style={{ fontSize: "12px", color: T.textMuted, marginBottom: "16px", fontStyle: "italic" }}>Descript → Settings → API Tokens → Create Token. One key covers your entire workspace.</div>
+                <SaveBtn />
+              </div>
+            </div>
+            <div style={{ background: T.card, border: "1px solid " + T.cardBorder, borderRadius: "12px", marginBottom: "16px" }}>
+              <div style={{ padding: "20px 24px", display: "flex", alignItems: "center", gap: "12px" }}>
+                <span style={{ fontSize: "22px" }}>🔮</span>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: "15px", fontWeight: "700", color: T.text }}>Anthropic (Claude)</div>
+                  <div style={{ fontSize: "13px", color: T.textMuted, fontStyle: "italic" }}>Powers all AI content generation.</div>
+                </div>
+                <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
+                  <div style={{ width: "8px", height: "8px", borderRadius: "50%", background: "#52B788" }} />
+                  <span style={{ fontSize: "12px", color: T.textMuted }}>Active</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeSection === "workspace" && (
+          <div style={{ maxWidth: "680px" }}>
+            <div style={{ marginBottom: "28px" }}>
+              <div style={{ fontSize: "22px", fontWeight: "700", color: T.text, marginBottom: "6px" }}>Workspace</div>
+              <div style={{ fontSize: "15px", color: T.textMuted, fontStyle: "italic" }}>Configure your production workspace.</div>
+            </div>
+            <div style={{ background: T.card, border: "1px solid " + T.cardBorder, borderRadius: "12px", padding: "24px" }}>
+              <div style={{ marginBottom: "14px" }}>
+                <label style={{ fontSize: "12px", letterSpacing: "2px", textTransform: "uppercase", color: T.textMuted, marginBottom: "6px", display: "block" }}>Workspace Name</label>
+                <input value={globalSettings.workspaceName || ""} onChange={e => setGlobalSettings(s => ({ ...s, workspaceName: e.target.value }))} placeholder="Podcast Impact Studio" style={{ ...inp, marginBottom: "14px" }} />
+                <label style={{ fontSize: "12px", letterSpacing: "2px", textTransform: "uppercase", color: T.textMuted, marginBottom: "6px", display: "block" }}>Website</label>
+                <input value={globalSettings.workspaceUrl || ""} onChange={e => setGlobalSettings(s => ({ ...s, workspaceUrl: e.target.value }))} placeholder="https://podcastimpactstudio.com" style={{ ...inp, marginBottom: "20px" }} />
+                <label style={{ fontSize: "12px", letterSpacing: "2px", textTransform: "uppercase", color: T.textMuted, marginBottom: "6px", display: "block" }}>Admin Emails</label>
+                <div style={{ fontSize: "12px", color: T.textMuted, marginBottom: "8px", fontStyle: "italic" }}>One email per line. Only these addresses can access admin settings.</div>
+                <textarea value={(globalSettings.adminEmails || ["tamar@podcastimpactstudio.com", "tamarroutly@gmail.com"]).join("\n")} onChange={e => setGlobalSettings(s => ({ ...s, adminEmails: e.target.value.split("\n").map(x => x.trim()).filter(Boolean) }))} placeholder="admin@yourdomain.com" style={{ ...inp, minHeight: "100px", resize: "vertical", marginBottom: "20px", fontFamily: "monospace" }} />
+                <SaveBtn />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeSection === "team" && (
+          <div style={{ maxWidth: "680px" }}>
+            <div style={{ marginBottom: "28px" }}>
+              <div style={{ fontSize: "22px", fontWeight: "700", color: T.text, marginBottom: "6px" }}>Team</div>
+              <div style={{ fontSize: "15px", color: T.textMuted, fontStyle: "italic" }}>Manage who has access to this workspace.</div>
+            </div>
+            <div style={{ background: T.card, border: "1px solid " + T.cardBorder, borderRadius: "12px", overflow: "hidden" }}>
+              <div style={{ padding: "16px 24px", borderBottom: "1px solid " + T.cardBorder }}>
+                <div style={{ fontSize: "15px", fontWeight: "700", color: T.text }}>Team Members</div>
+              </div>
+              <div style={{ padding: "0 24px" }}>
+                {team.map((member, i) => (
+                  <div key={i}>
+                    {editingIdx === i ? (
+                      <div style={{ padding: "14px 0", borderBottom: i < team.length - 1 ? "1px solid " + T.cardBorder : "none" }}>
+                        <div style={{ display: "flex", gap: "8px", marginBottom: "8px", flexWrap: "wrap" }}>
+                          <input value={editForm.name} onChange={e => setEditForm(f => ({ ...f, name: e.target.value }))} placeholder="Full name" style={{ ...inp, flex: 1, minWidth: "130px" }} />
+                          <input value={editForm.email} onChange={e => setEditForm(f => ({ ...f, email: e.target.value }))} placeholder="Email" style={{ ...inp, flex: 2, minWidth: "180px" }} />
+                          <select value={editForm.role} onChange={e => setEditForm(f => ({ ...f, role: e.target.value }))} style={{ ...inp, cursor: "pointer" }} disabled={editForm.role === "Owner"}>
+                            <option>Owner</option><option>Editor</option><option>Viewer</option>
+                          </select>
+                        </div>
+                        <div style={{ display: "flex", gap: "8px" }}>
+                          <button onClick={() => { saveTeam(team.map((m, idx) => idx === i ? editForm : m)); setEditingIdx(null); }} style={{ padding: "6px 16px", background: T.coral, border: "none", borderRadius: "6px", color: "#fff", fontSize: "12px", fontWeight: "700", cursor: "pointer" }}>Save</button>
+                          <button onClick={() => setEditingIdx(null)} style={{ padding: "6px 12px", background: "transparent", border: "1px solid " + T.cardBorder, borderRadius: "6px", color: T.textMuted, fontSize: "12px", cursor: "pointer" }}>Cancel</button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div style={{ display: "flex", alignItems: "center", gap: "12px", padding: "14px 0", borderBottom: i < team.length - 1 ? "1px solid " + T.cardBorder : "none" }}>
+                        <div style={{ width: "36px", height: "36px", borderRadius: "50%", background: T.coralSoft, border: "1px solid " + T.coralMid, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "14px", fontWeight: "700", color: T.coral, flexShrink: 0 }}>{member.name.charAt(0)}</div>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontSize: "14px", fontWeight: "600", color: T.text }}>{member.name}</div>
+                          <div style={{ fontSize: "13px", color: T.textMuted }}>{member.email}</div>
+                        </div>
+                        <span style={{ fontSize: "11px", padding: "3px 10px", background: member.role === "Owner" ? T.coralSoft : T.card, border: "1px solid " + (member.role === "Owner" ? T.coralMid : T.cardBorder), borderRadius: "20px", color: member.role === "Owner" ? T.coral : T.textMuted }}>{member.role}</span>
+                        <button onClick={() => { setEditingIdx(i); setEditForm({ ...member }); setAddingMember(false); }} style={{ padding: "5px 12px", background: "transparent", border: "1px solid " + T.cardBorder, borderRadius: "6px", color: T.textMuted, fontSize: "12px", cursor: "pointer" }}>Edit</button>
+                        {member.role !== "Owner" && <button onClick={() => saveTeam(team.filter((_, idx) => idx !== i))} style={{ padding: "5px 10px", background: "transparent", border: "1px solid #D94F4F44", borderRadius: "6px", color: "#F09090", fontSize: "12px", cursor: "pointer" }}>✕</button>}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+              <div style={{ padding: "14px 24px", borderTop: "1px solid " + T.cardBorder }}>
+                {addingMember ? (
+                  <div>
+                    <div style={{ fontSize: "13px", color: T.textMuted, marginBottom: "12px", fontStyle: "italic" }}>
+                      They'll receive an email invite to set up their account.
+                    </div>
+                    <div style={{ display: "flex", gap: "8px", marginBottom: "8px", flexWrap: "wrap" }}>
+                      <input value={newMember.email} onChange={e => setNewMember(m => ({ ...m, email: e.target.value }))} placeholder="Email address" style={{ ...inp, flex: 2, minWidth: "200px" }} />
+                      <select value={newMember.role} onChange={e => setNewMember(m => ({ ...m, role: e.target.value }))} style={{ ...inp, cursor: "pointer", flex: 1, minWidth: "120px" }}>
+                        <option value="editor">Editor</option>
+                        <option value="viewer">Viewer</option>
+                      </select>
+                    </div>
+                    {inviteMsg && <div style={{ fontSize: "13px", color: inviteMsg.startsWith("✓") ? "#52B788" : "#F09090", marginBottom: "8px" }}>{inviteMsg}</div>}
+                    <div style={{ display: "flex", gap: "8px" }}>
+                      <button onClick={sendInvite} disabled={inviting} style={{ padding: "8px 20px", background: T.coral, border: "none", borderRadius: "6px", color: "#fff", fontSize: "13px", fontWeight: "700", cursor: "pointer" }}>
+                        {inviting ? "Sending..." : "Send Invite →"}
+                      </button>
+                      <button onClick={() => { setAddingMember(false); setNewMember({ email: "", role: "editor" }); setInviteMsg(""); }} style={{ padding: "8px 14px", background: "transparent", border: "1px solid " + T.cardBorder, borderRadius: "6px", color: T.textMuted, fontSize: "13px", cursor: "pointer" }}>Cancel</button>
+                    </div>
+                  </div>
+                ) : (
+                  <button onClick={() => { setAddingMember(true); setEditingIdx(null); }} style={{ width: "100%", padding: "9px", background: "transparent", border: "1px dashed " + T.cardBorder, borderRadius: "6px", color: T.textMuted, fontSize: "13px", cursor: "pointer" }}>+ Invite Team Member</button>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeSection === "billing" && (
+          <div style={{ maxWidth: "680px" }}>
+            <div style={{ marginBottom: "28px" }}>
+              <div style={{ fontSize: "22px", fontWeight: "700", color: T.text, marginBottom: "6px" }}>Billing</div>
+              <div style={{ fontSize: "15px", color: T.textMuted, fontStyle: "italic" }}>Manage your subscription and usage.</div>
+            </div>
+            <div style={{ background: T.card, border: "1px solid " + T.cardBorder, borderRadius: "12px", padding: "24px" }}>
+              <div style={{ fontSize: "32px", fontWeight: "700", color: T.text, marginBottom: "4px" }}>Internal Use</div>
+              <div style={{ fontSize: "14px", color: T.textMuted, marginBottom: "20px" }}>Billing will be configured when the app launches for external clients.</div>
+              <div style={{ background: T.surface, borderRadius: "8px", padding: "16px 20px" }}>
+                <div style={{ fontSize: "12px", color: T.coral, letterSpacing: "1.5px", marginBottom: "10px", fontWeight: "700" }}>COMING SOON</div>
+                {["Per-show pricing for client workspaces", "Usage-based API cost tracking", "Client billing and invoicing"].map((f, i) => (
+                  <div key={i} style={{ display: "flex", gap: "8px", alignItems: "center", marginBottom: "6px" }}>
+                    <span style={{ color: T.coral }}>→</span>
+                    <span style={{ fontSize: "13px", color: T.textSecondary }}>{f}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+      </div>
+    </div>
+  );
+}
+
 export function AdminGate({ onSuccess, onClose }) {
   const [pin, setPin] = useState("");
   const [err, setErr] = useState(false);
@@ -297,10 +492,17 @@ export function AdminGate({ onSuccess, onClose }) {
 }
 
 export function AdminPanel({ shows, onClose, onSaved }) {
+  const [adminView, setAdminView] = useState("shows");
   const [selKey, setSelKey] = useState(null);
   const [form, setForm] = useState(null);
+  const [tab, setTab] = useState("basic");
+  const [rawDna, setRawDna] = useState("");
+  const [parsing, setParsing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [msg, setMsg] = useState("");
+  const [addingNew, setAddingNew] = useState(false);
+  const [newId, setNewId] = useState("");
   const [globalSettings, setGlobalSettings] = useState({});
-  const [showGlobalSettings, setShowGlobalSettings] = useState(false);
   const [globalSettingsSaved, setGlobalSettingsSaved] = useState(false);
   const [globalSettingsLoading, setGlobalSettingsLoading] = useState(false);
 
@@ -327,14 +529,6 @@ export function AdminPanel({ shows, onClose, onSaved }) {
       setGlobalSettingsLoading(false);
     }
   }
-  const [rawDna, setRawDna] = useState("");
-  const [parsing, setParsing] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [msg, setMsg] = useState("");
-  const [addingNew, setAddingNew] = useState(false);
-  const [newId, setNewId] = useState("");
-  const [tab, setTab] = useState("basic");
-
   function selectShow(k) {
     const s = shows[k];
     setSelKey(k);
@@ -348,7 +542,7 @@ export function AdminPanel({ shows, onClose, onSaved }) {
       aud: { who: s.aud?.who || "", pains: (s.aud?.pains || []).join("\n"), lang: s.aud?.lang || "" },
       tags: s.tags || "",
       bp: s.bp || "",
-      rules: s.rules || "",
+      rules: s.rules || "", publishDay: s.publishDay || "", publishTime: s.publishTime || "", publishTz: s.publishTz || "",
       snElements: DEFAULT_SN_ELEMENTS.map(def => {
         const saved = (s.snElements || []).find(e => e.id === def.id);
         return saved ? { ...def, enabled: saved.enabled, text: saved.text || "", header: saved.header || "", scope: saved.scope || def.scope } : def;
@@ -365,7 +559,7 @@ export function AdminPanel({ shows, onClose, onSaved }) {
       platforms: DEFAULT_PLATFORMS,
       voice: { traits: "", energy: "5/10", arch: "", arc: "", phrases: "", use: "", avoid: "" },
       aud: { who: "", pains: "", lang: "" },
-      tags: "", bp: "", rules: "",
+      tags: "", bp: "", rules: "", publishDay: "", publishTime: "", publishTz: "",
       snElements: DEFAULT_SN_ELEMENTS,
       descriptApiKey: "",
     });
@@ -457,7 +651,7 @@ export function AdminPanel({ shows, onClose, onSaved }) {
         platforms: form.platforms,
         voice: { traits: form.voice.traits, energy: form.voice.energy, arch: form.voice.arch, arc: form.voice.arc, phrases: form.voice.phrases.split("\n").map(s => s.trim()).filter(Boolean), use: form.voice.use, avoid: form.voice.avoid },
         aud: { who: form.aud.who, pains: form.aud.pains.split("\n").map(s => s.trim()).filter(Boolean), lang: form.aud.lang },
-        tags: form.tags, bp: form.bp, rules: form.rules,
+        tags: form.tags, bp: form.bp, rules: form.rules, publishDay: form.publishDay || "", publishTime: form.publishTime || "", publishTz: form.publishTz || "",
         snElements: form.snElements,
         descriptApiKey: form.descriptApiKey || "",
         tpl: { sn: "", yt: "", sm: "", gk: "", em: "", bl: "" },
@@ -483,47 +677,28 @@ export function AdminPanel({ shows, onClose, onSaved }) {
 
   return (
     <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.95)", zIndex: 1000, display: "flex", flexDirection: "column" }}>
-      <div style={{ padding: "0 32px", background: T.surface, borderBottom: "1px solid " + T.cardBorder, display: "flex", justifyContent: "space-between", alignItems: "center", height: "56px", flexShrink: 0 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-          <div style={{ width: "3px", height: "24px", background: T.coral, borderRadius: "2px" }} />
-          <span style={{ fontSize: "16px", letterSpacing: "2px", textTransform: "uppercase", color: T.text, ...LS, fontWeight: "700" }}>Admin Panel</span>
-          <span style={{ fontSize: "13px", letterSpacing: "2px", textTransform: "uppercase", color: T.coral, ...LS }}>Show DNA Manager</span>
+      <div style={{ background: T.surface, borderBottom: "1px solid " + T.cardBorder, flexShrink: 0 }}>
+        <div style={{ padding: "0 32px", display: "flex", justifyContent: "space-between", alignItems: "center", height: "56px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+            <div style={{ width: "3px", height: "24px", background: T.coral, borderRadius: "2px" }} />
+            <span style={{ fontSize: "16px", letterSpacing: "2px", textTransform: "uppercase", color: T.text, fontFamily: "'Inter', ui-sans-serif, system-ui, sans-serif", fontWeight: "700" }}>Podcast Impact Studio</span>
+            <span style={{ fontSize: "11px", color: T.textMuted, fontFamily: "'Inter', ui-sans-serif, system-ui, sans-serif", background: T.card, padding: "3px 8px", borderRadius: "4px", border: "1px solid " + T.cardBorder }}>Admin</span>
+          </div>
+          <button onClick={onClose} style={{ padding: "8px 16px", background: "transparent", border: "1px solid " + T.cardBorder, borderRadius: "6px", color: T.textSecondary, fontSize: "13px", cursor: "pointer", fontFamily: "'Inter', ui-sans-serif, system-ui, sans-serif" }}>✕ Close</button>
         </div>
-        <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
-          <button onClick={() => setShowGlobalSettings(!showGlobalSettings)} style={{ padding: "8px 16px", background: showGlobalSettings ? T.coralSoft : "transparent", border: "1px solid " + (showGlobalSettings ? T.coral : T.cardBorder), borderRadius: "6px", color: showGlobalSettings ? T.coral : T.textSecondary, fontSize: "14px", cursor: "pointer", ...LS, letterSpacing: "1.5px" }}>⚙️ SETTINGS</button>
-          <button onClick={onClose} style={{ padding: "8px 16px", background: "transparent", border: "1px solid " + T.cardBorder, borderRadius: "6px", color: T.text, fontSize: "14px", cursor: "pointer", ...LS, letterSpacing: "1.5px" }}>CLOSE X</button>
+        <div style={{ display: "flex", padding: "0 32px" }}>
+          {["shows", "settings"].map(v => (
+            <button key={v} onClick={() => setAdminView(v)}
+              style={{ padding: "10px 24px", background: "transparent", border: "none", borderBottom: adminView === v ? "2px solid " + T.coral : "2px solid transparent", color: adminView === v ? T.coral : T.textMuted, fontSize: "13px", cursor: "pointer", fontFamily: "'Inter', ui-sans-serif, system-ui, sans-serif", letterSpacing: "2px", textTransform: "uppercase", fontWeight: adminView === v ? "700" : "500", transition: "all .15s" }}>
+              {v === "shows" ? "Show DNA Manager" : "Settings"}
+            </button>
+          ))}
         </div>
       </div>
 
-      {showGlobalSettings && (
-        <div style={{ background: T.surface, borderBottom: "1px solid " + T.cardBorder, padding: "24px 32px", flexShrink: 0 }}>
-          <div style={{ maxWidth: "600px" }}>
-            <div style={{ fontSize: "13px", letterSpacing: "3px", textTransform: "uppercase", color: T.coral, marginBottom: "16px", ...LS, fontWeight: "700" }}>Global Settings — API Keys</div>
-            <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-              <div>
-                <label style={{ fontSize: "13px", letterSpacing: "2px", textTransform: "uppercase", color: T.text, marginBottom: "8px", display: "block", ...LS }}>Descript API Key</label>
-                <input
-                  type="password"
-                  value={globalSettings.descriptApiKey || ""}
-                  onChange={e => setGlobalSettings(s => ({ ...s, descriptApiKey: e.target.value }))}
-                  placeholder="Paste your Descript API key here..."
-                  style={{ width: "100%", background: T.card, border: "1px solid " + T.cardBorder, borderRadius: "6px", padding: "10px 14px", color: T.text, fontSize: "15px", outline: "none", boxSizing: "border-box", fontFamily: "monospace" }}
-                />
-                <div style={{ fontSize: "13px", color: T.textMuted, marginTop: "6px", fontFamily: "'EB Garamond', serif", fontStyle: "italic" }}>
-                  Descript → Settings → API Tokens → Create Token. One key covers all shows in your workspace.
-                </div>
-              </div>
-              <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
-                <button onClick={() => saveGlobalSettings(globalSettings)}
-                  style={{ padding: "10px 24px", background: T.coral, border: "none", borderRadius: "6px", color: "#fff", fontSize: "14px", fontWeight: "700", cursor: "pointer", ...LS, letterSpacing: "1.5px", textTransform: "uppercase" }}>
-                  {globalSettingsSaved ? "✓ Saved" : globalSettingsLoading ? "Saving..." : "Save Settings"}
-                </button>
-                <span style={{ fontSize: "13px", color: T.textMuted, fontFamily: "'EB Garamond', serif", fontStyle: "italic" }}>Saved to Supabase — shared across all team members</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      {adminView === "settings" ? (
+        <SettingsView globalSettings={globalSettings} setGlobalSettings={setGlobalSettings} saveGlobalSettings={saveGlobalSettings} globalSettingsSaved={globalSettingsSaved} globalSettingsLoading={globalSettingsLoading} />
+      ) : (
       <div style={{ flex: 1, display: "flex", overflow: "hidden" }}>
         <div style={{ width: "220px", background: T.surface, borderRight: "1px solid " + T.cardBorder, display: "flex", flexDirection: "column", flexShrink: 0 }}>
           <div style={{ padding: "16px", borderBottom: "1px solid " + T.cardBorder }}>
@@ -533,7 +708,7 @@ export function AdminPanel({ shows, onClose, onSaved }) {
             {Object.entries(shows).map(([k, s]) => (
               <div key={k} onClick={() => selectShow(k)}
                 style={{ padding: "12px 14px", borderRadius: "6px", cursor: "pointer", background: selKey === k ? (s.clr ? s.clr + "18" : T.coralSoft) : "transparent", border: "1px solid " + (selKey === k ? (s.clr || T.coral) + "44" : "transparent"), marginBottom: "4px", transition: "all .15s" }}>
-                <div style={{ fontSize: "15px", color: selKey === k ? (s.clr || T.coral) : T.text, fontWeight: "700", ...LS, marginBottom: "2px" }}>{s.name}</div>
+                <div style={{ fontSize: "15px", color: T.coral, fontWeight: "600", ...LS, marginBottom: "2px" }}>{s.name}</div>
                 <div style={{ fontSize: "13px", color: T.textSecondary, ...GA, fontStyle: "italic" }}>{(s.tag || "").substring(0, 35)}{(s.tag || "").length > 35 ? "..." : ""}</div>
               </div>
             ))}
@@ -590,14 +765,23 @@ export function AdminPanel({ shows, onClose, onSaved }) {
                     <Fld label="Show Name"><input style={fld()} value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} placeholder="The Podcast Name" /></Fld>
                     <Fld label="Tagline / Motto"><input style={fld()} value={form.tag} onChange={e => setForm(p => ({ ...p, tag: e.target.value }))} placeholder="Your show's one-liner" /></Fld>
                     <Fld label="Host(s)"><input style={fld()} value={form.hosts} onChange={e => setForm(p => ({ ...p, hosts: e.target.value }))} placeholder="Jane Smith, John Doe" /></Fld>
-                    <Fld label="Brand Color">
-                      <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
-                        <input type="color" value={form.clr} onChange={e => setForm(p => ({ ...p, clr: e.target.value }))} style={{ width: "48px", height: "36px", border: "none", borderRadius: "6px", cursor: "pointer" }} />
-                        <input style={{ ...fld(), flex: 1 }} value={form.clr} onChange={e => setForm(p => ({ ...p, clr: e.target.value }))} placeholder="#FF3131" />
-                        <div style={{ width: "36px", height: "36px", borderRadius: "6px", background: form.clr, flexShrink: 0 }} />
-                      </div>
-                    </Fld>
+
                     <Fld label="Default Hashtags"><textarea style={{ ...fld(), minHeight: "70px", resize: "vertical" }} value={form.tags} onChange={e => setForm(p => ({ ...p, tags: e.target.value }))} placeholder="#ShowName #Topic1 #Topic2" /></Fld>
+                    <div style={{ marginBottom: "14px" }}>
+                      <label style={lbl()}>Publish Schedule</label>
+                      <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+                        <select style={{ ...fld(), flex: 1, minWidth: "140px", cursor: "pointer" }} value={form.publishDay || ""} onChange={e => setForm(p => ({ ...p, publishDay: e.target.value }))}>
+                          <option value="">Day of week...</option>
+                          {["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"].map(d => <option key={d} value={d}>{d}</option>)}
+                        </select>
+                        <input type="time" style={{ ...fld(), flex: 1, minWidth: "120px" }} value={form.publishTime || ""} onChange={e => setForm(p => ({ ...p, publishTime: e.target.value }))} />
+                        <select style={{ ...fld(), flex: 2, minWidth: "180px", cursor: "pointer" }} value={form.publishTz || ""} onChange={e => setForm(p => ({ ...p, publishTz: e.target.value }))}>
+                          <option value="">Timezone...</option>
+                          {[["America/New_York","Eastern Time (ET)"],["America/Chicago","Central Time (CT)"],["America/Denver","Mountain Time (MT)"],["America/Los_Angeles","Pacific Time (PT)"],["America/Vancouver","Vancouver (PT)"],["America/Toronto","Toronto (ET)"],["Europe/London","London (GMT/BST)"],["Asia/Manila","Manila (PHT)"],["Asia/Tokyo","Tokyo (JST)"],["Australia/Sydney","Sydney (AEST)"]].map(([v,l]) => <option key={v} value={v}>{l}</option>)}
+                        </select>
+                      </div>
+                      <div style={{ fontSize: "12px", color: T.textMuted, marginTop: "6px", fontStyle: "italic" }}>Editors in other timezones will see this converted to their local time.</div>
+                    </div>
                   </Section>
                 )}
 
@@ -659,6 +843,7 @@ export function AdminPanel({ shows, onClose, onSaved }) {
           </div>
         )}
       </div>
+      )}
     </div>
   );
 }
