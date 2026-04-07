@@ -247,17 +247,41 @@ function BoilerplateEditor({ value, onChange }) {
 
 function SettingsView({ globalSettings, setGlobalSettings, saveGlobalSettings, globalSettingsSaved, globalSettingsLoading }) {
   const [activeSection, setActiveSection] = useState("integrations");
-  const [team, setTeam] = useState(globalSettings.team || [
-    { name: "Tamar Routly", role: "Owner", email: "tamar@podcastimpactstudio.com" },
-    { name: "Alysse Bryson", role: "Editor", email: "alysse@thesobercurator.com" },
-    { name: "Mark Camilon", role: "Editor", email: "mark@podcastimpactstudio.com" },
-  ]);
+  const [team, setTeam] = useState([]);
+  const [teamLoading, setTeamLoading] = useState(true);
   const [addingMember, setAddingMember] = useState(false);
   const [newMember, setNewMember] = useState({ email: "", role: "editor" });
   const [editingIdx, setEditingIdx] = useState(null);
   const [editForm, setEditForm] = useState({});
   const [inviting, setInviting] = useState(false);
   const [inviteMsg, setInviteMsg] = useState("");
+
+  useEffect(() => {
+    async function loadTeam() {
+      setTeamLoading(true);
+      try {
+        const r = await fetch("/api/users");
+        const data = await r.json();
+        if (!r.ok) throw new Error(data.error);
+        const savedTeam = globalSettings.team || [];
+        const merged = data.users.map(u => {
+          const saved = savedTeam.find(m => m.email?.toLowerCase() === u.email?.toLowerCase());
+          return {
+            id: u.id,
+            email: u.email,
+            name: saved?.name || u.name || u.email,
+            role: saved?.role || "Editor",
+          };
+        });
+        setTeam(merged);
+      } catch {
+        setTeam(globalSettings.team || []);
+      } finally {
+        setTeamLoading(false);
+      }
+    }
+    loadTeam();
+  }, []);
 
   async function sendInvite() {
     if (!newMember.email.trim()) { setInviteMsg("Please enter an email address."); return; }
@@ -384,7 +408,9 @@ function SettingsView({ globalSettings, setGlobalSettings, saveGlobalSettings, g
                 <div style={{ fontSize: "15px", fontWeight: "700", color: T.text }}>Team Members</div>
               </div>
               <div style={{ padding: "0 24px" }}>
-                {team.map((member, i) => (
+                {teamLoading ? (
+                  <div style={{ padding: "24px 0", color: T.textMuted, fontSize: "14px", textAlign: "center" }}>Loading team members...</div>
+                ) : team.map((member, i) => (
                   <div key={i}>
                     {editingIdx === i ? (
                       <div style={{ padding: "14px 0", borderBottom: i < team.length - 1 ? "1px solid " + T.cardBorder : "none" }}>
