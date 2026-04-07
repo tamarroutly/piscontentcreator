@@ -263,17 +263,18 @@ function SettingsView({ globalSettings, setGlobalSettings, saveGlobalSettings, g
     if (!newMember.email.trim()) { setInviteMsg("Please enter an email address."); return; }
     setInviting(true); setInviteMsg("");
     try {
-      const { error } = await supabase.auth.admin.inviteUserByEmail(newMember.email.trim().toLowerCase(), {
-        data: { role: newMember.role }
+      const r = await fetch("/api/invite", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: newMember.email.trim().toLowerCase(), role: newMember.role }),
       });
-      if (error) throw error;
+      const data = await r.json();
+      if (!r.ok) throw new Error(data.error || "Failed to send invite.");
       setInviteMsg("✓ Invite sent to " + newMember.email);
       setNewMember({ email: "", role: "editor" });
-      setTimeout(() => { setAddingMember(false); setInviteMsg(""); }, 2000);
+      setTimeout(() => { setAddingMember(false); setInviteMsg(""); }, 2500);
     } catch (e) {
-      // inviteUserByEmail requires service_role key - use edge function fallback
-      // For now show a helpful message
-      setInviteMsg("Note: Invite emails require Supabase service role. Add " + newMember.email + " manually in Supabase Auth → Users.");
+      setInviteMsg("Error: " + e.message);
     } finally {
       setInviting(false);
     }
