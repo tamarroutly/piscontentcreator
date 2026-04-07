@@ -54,7 +54,6 @@ export default function Profile({ user, onClose, onSignOut }) {
     try {
       const { error } = await supabase.from("profiles").upsert({
         id: user.id, name: name.trim(), timezone,
-        updated_at: new Date().toISOString(),
       });
       if (error) throw error;
       setMsg("✓ Profile saved");

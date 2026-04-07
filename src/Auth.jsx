@@ -152,7 +152,6 @@ function AccountSetupScreen({ onComplete }) {
       const { data: { user } } = await supabase.auth.getUser();
       const { error: profileError } = await supabase.from("profiles").upsert({
         id: user.id, name: name.trim(), timezone,
-        updated_at: new Date().toISOString(),
       });
       if (profileError) throw profileError;
       onComplete();
