@@ -10,12 +10,11 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: "Supabase service role key not configured." });
   }
 
-  const { email, role } = req.body;
-  if (!email) {
-    return res.status(400).json({ error: "Email is required." });
-  }
-
   try {
+    const { email, role } = req.body || {};
+    if (!email) {
+      return res.status(400).json({ error: "Email is required." });
+    }
     const response = await fetch(`${supabaseUrl}/auth/v1/invite`, {
       method: "POST",
       headers: {
