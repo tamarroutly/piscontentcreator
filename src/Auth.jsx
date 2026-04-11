@@ -132,10 +132,21 @@ function LoginScreen({ onLogin, onSignup }) {
 }
 
 // ── SIGNUP SCREEN ─────────────────────────────────────────────────────────────
+const ROLES = [
+  "Podcast Producer",
+  "Agency Owner",
+  "Freelance Editor",
+  "Podcast Host",
+  "Content Strategist",
+  "Virtual Assistant",
+  "Other",
+];
+
 function SignupScreen({ onSwitch, onAuthenticated }) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [orgName, setOrgName] = useState("");
+  const [role, setRole] = useState("");
   const [timezone, setTimezone] = useState(Intl.DateTimeFormat().resolvedOptions().timeZone || "America/Vancouver");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
@@ -144,7 +155,7 @@ function SignupScreen({ onSwitch, onAuthenticated }) {
 
   async function handleSignup() {
     if (!name.trim() || !email.trim() || !orgName.trim() || !password) {
-      setError("All fields are required."); return;
+      setError("Please fill in all required fields."); return;
     }
     if (password.length < 8) { setError("Password must be at least 8 characters."); return; }
     if (password !== confirm) { setError("Passwords don't match."); return; }
@@ -165,6 +176,7 @@ function SignupScreen({ onSwitch, onAuthenticated }) {
           orgName: orgName.trim(),
           userName: name.trim(),
           timezone,
+          role: role || "Other",
         }),
       });
       const result = await r.json();
@@ -181,35 +193,52 @@ function SignupScreen({ onSwitch, onAuthenticated }) {
   const lbl = { fontSize: "12px", letterSpacing: "2px", textTransform: "uppercase", color: T.textMuted, display: "block", marginBottom: "6px", fontFamily: "'Inter', ui-sans-serif, system-ui, sans-serif" };
 
   return (
-    <div style={{ minHeight: "100vh", background: T.bg, display: "flex", alignItems: "center", justifyContent: "center", padding: "20px" }}>
-      <div style={{ width: "100%", maxWidth: "440px" }}>
-        <div style={{ textAlign: "center", marginBottom: "40px" }}>
+    <div style={{ minHeight: "100vh", background: T.bg, display: "flex", alignItems: "center", justifyContent: "center", padding: "20px 20px 40px" }}>
+      <div style={{ width: "100%", maxWidth: "480px" }}>
+        <div style={{ textAlign: "center", marginBottom: "36px" }}>
           <div style={{ width: "3px", height: "32px", background: T.coral, borderRadius: "2px", margin: "0 auto 20px" }} />
-          <div style={{ fontSize: "28px", fontWeight: "800", color: T.text, letterSpacing: "-0.5px", fontFamily: "'Inter', ui-sans-serif, system-ui, sans-serif" }}>Create your account</div>
-          <div style={{ fontSize: "15px", color: T.textMuted, marginTop: "6px", fontFamily: "'Inter', ui-sans-serif, system-ui, sans-serif" }}>Set up your workspace in seconds.</div>
+          <div style={{ fontSize: "34px", fontWeight: "700", color: T.text, letterSpacing: "-0.5px", fontFamily: "'Playfair Display', Georgia, serif", lineHeight: "1.2" }}>Create your workspace</div>
+          <div style={{ fontSize: "15px", color: T.textMuted, marginTop: "8px", fontFamily: "'Inter', ui-sans-serif, system-ui, sans-serif" }}>All your podcasts, team, and content in one place.</div>
         </div>
         <div style={{ background: T.card, border: "1px solid " + T.cardBorder, borderRadius: "12px", padding: "32px" }}>
-          <label style={lbl}>Your Name</label>
-          <input type="text" placeholder="Full name" value={name} onChange={e => setName(e.target.value)} style={inp} autoFocus />
 
-          <label style={lbl}>Email Address</label>
-          <input type="email" placeholder="you@yourcompany.com" value={email} onChange={e => setEmail(e.target.value)} style={inp} />
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "0" }}>
+            <div>
+              <label style={lbl}>Your First Name *</label>
+              <input type="text" placeholder="Jane" value={name} onChange={e => setName(e.target.value)} style={{ ...inp, marginBottom: "0" }} autoFocus />
+            </div>
+            <div>
+              <label style={lbl}>Your Role</label>
+              <select value={role} onChange={e => setRole(e.target.value)} style={{ ...inp, marginBottom: "0", cursor: "pointer" }}>
+                <option value="">Select role…</option>
+                {ROLES.map(r => <option key={r} value={r}>{r}</option>)}
+              </select>
+            </div>
+          </div>
 
-          <label style={lbl}>Workspace Name</label>
-          <input type="text" placeholder="Your podcast production company" value={orgName} onChange={e => setOrgName(e.target.value)} style={inp} />
+          <div style={{ height: "12px" }} />
+          <label style={lbl}>Business / Agency Name *</label>
+          <input type="text" placeholder="Sound & Story Productions" value={orgName} onChange={e => setOrgName(e.target.value)} style={inp} />
+
+          <label style={lbl}>Email Address *</label>
+          <input type="email" placeholder="jane@yourstudio.com" value={email} onChange={e => setEmail(e.target.value)} style={inp} />
 
           <label style={lbl}>Your Timezone</label>
           <select value={timezone} onChange={e => setTimezone(e.target.value)} style={{ ...inp, cursor: "pointer" }}>
             {TIMEZONES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
           </select>
 
-          <label style={lbl}>Password</label>
+          <label style={lbl}>Password *</label>
           <input type="password" placeholder="At least 8 characters" value={password} onChange={e => setPassword(e.target.value)} style={inp} />
-          <input type="password" placeholder="Confirm password" value={confirm} onChange={e => setConfirm(e.target.value)} onKeyDown={e => e.key === "Enter" && handleSignup()} style={inp} />
+          <input type="password" placeholder="Confirm password" value={confirm} onChange={e => setConfirm(e.target.value)} onKeyDown={e => e.key === "Enter" && handleSignup()} style={{ ...inp, marginBottom: "16px" }} />
 
-          {error && <div style={{ color: "#F09090", fontSize: "14px", marginBottom: "10px", fontFamily: "'Inter', ui-sans-serif, system-ui, sans-serif" }}>{error}</div>}
+          <div style={{ fontSize: "12px", color: T.textMuted, marginBottom: "16px", fontFamily: "'Inter', ui-sans-serif, system-ui, sans-serif", lineHeight: "1.5" }}>
+            Once you're in, you'll add your first podcast and can invite your team members from the admin panel.
+          </div>
+
+          {error && <div style={{ color: "#F09090", fontSize: "14px", marginBottom: "12px", fontFamily: "'Inter', ui-sans-serif, system-ui, sans-serif" }}>{error}</div>}
           <button onClick={handleSignup} disabled={loading} style={btn(true)}>
-            {loading ? "Creating workspace..." : "Create Account →"}
+            {loading ? "Creating your workspace…" : "Create Account & Get Started →"}
           </button>
         </div>
         <div style={{ textAlign: "center", marginTop: "20px", fontSize: "13px", color: T.textMuted, fontFamily: "'Inter', ui-sans-serif, system-ui, sans-serif" }}>

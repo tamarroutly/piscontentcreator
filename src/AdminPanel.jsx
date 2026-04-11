@@ -776,6 +776,18 @@ export function AdminPanel({ shows, orgId, onClose, onSaved }) {
                 </div>
               )}
 
+              {selKey === "__new__" && (
+                <div style={{ padding: "14px 24px", background: "#D9775710", borderBottom: "1px solid " + T.coral + "33", display: "flex", gap: "12px", alignItems: "flex-start" }}>
+                  <span style={{ fontSize: "20px", flexShrink: 0 }}>💡</span>
+                  <div>
+                    <div style={{ fontSize: "13px", fontWeight: "700", color: T.coral, marginBottom: "3px", letterSpacing: "1px", textTransform: "uppercase", fontFamily: "'Inter', ui-sans-serif, system-ui, sans-serif" }}>For best results, fill in every tab</div>
+                    <div style={{ fontSize: "13px", color: T.textSecondary, lineHeight: "1.5", fontFamily: "'Inter', ui-sans-serif, system-ui, sans-serif" }}>
+                      The more detail you provide — voice DNA, audience, platforms, boilerplate — the more tailored and on-brand your generated content will be. Start with <strong style={{ color: T.text }}>Basic Info</strong>, then work through each tab. You can always come back and update.
+                    </div>
+                  </div>
+                </div>
+              )}
+
               <div style={{ display: "flex", borderBottom: "1px solid " + T.cardBorder, flexShrink: 0, overflowX: "auto" }}>
                 {TABS.map(t => (
                   <button key={t.id} onClick={() => setTab(t.id)}
