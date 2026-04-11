@@ -52,9 +52,9 @@ export default function Profile({ user, onClose, onSignOut }) {
     if (!name.trim()) { setMsg("Name is required."); return; }
     setSaving(true); setMsg("");
     try {
-      const { error } = await supabase.from("profiles").upsert({
-        id: user.id, name: name.trim(), timezone,
-      });
+      const { error } = await supabase.from("profiles")
+        .update({ name: name.trim(), timezone })
+        .eq("id", user.id);
       if (error) throw error;
       setMsg("✓ Profile saved");
       setTimeout(() => setMsg(""), 2000);
