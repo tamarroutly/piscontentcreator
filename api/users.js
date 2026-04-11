@@ -10,26 +10,43 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: "Supabase service role key not configured." });
   }
 
+  const orgId = req.query.orgId;
+  if (!orgId) {
+    return res.status(400).json({ error: "orgId is required." });
+  }
+
   try {
-    const response = await fetch(`${supabaseUrl}/auth/v1/admin/users?per_page=100`, {
-      headers: {
-        "apikey": serviceRoleKey,
-        "Authorization": `Bearer ${serviceRoleKey}`,
-      },
-    });
+    const { createClient } = await import("@supabase/supabase-js");
+    const admin = createClient(supabaseUrl, serviceRoleKey);
 
-    const data = await response.json();
+    // Get all profile rows for this org
+    const { data: profileRows, error: profileErr } = await admin
+      .from("profiles")
+      .select("id, name, role")
+      .eq("org_id", orgId);
 
-    if (!response.ok) {
-      return res.status(response.status).json({ error: data?.message || "Failed to fetch users." });
-    }
+    if (profileErr) throw profileErr;
 
-    const users = (data.users || []).map(u => ({
-      id: u.id,
-      email: u.email,
-      name: u.user_metadata?.full_name || u.user_metadata?.name || "",
-      createdAt: u.created_at,
-    }));
+    // Fetch auth user details for each profile in this org
+    const userDetails = await Promise.all(
+      (profileRows || []).map(p =>
+        fetch(`${supabaseUrl}/auth/v1/admin/users/${p.id}`, {
+          headers: {
+            "apikey": serviceRoleKey,
+            "Authorization": `Bearer ${serviceRoleKey}`,
+          },
+        }).then(r => r.json())
+      )
+    );
+
+    const users = userDetails
+      .filter(u => u.id)
+      .map(u => ({
+        id: u.id,
+        email: u.email,
+        name: u.user_metadata?.full_name || u.user_metadata?.name || "",
+        createdAt: u.created_at,
+      }));
 
     return res.status(200).json({ users });
   } catch (err) {

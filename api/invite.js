@@ -11,9 +11,12 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { email, role } = req.body || {};
+    const { email, role, orgId } = req.body || {};
     if (!email) {
       return res.status(400).json({ error: "Email is required." });
+    }
+    if (!orgId) {
+      return res.status(400).json({ error: "orgId is required." });
     }
     const response = await fetch(`${supabaseUrl}/auth/v1/invite`, {
       method: "POST",
@@ -24,7 +27,7 @@ export default async function handler(req, res) {
       },
       body: JSON.stringify({
         email: email.toLowerCase().trim(),
-        data: { role: role || "editor" },
+        data: { role: role || "editor", org_id: orgId },
       }),
     });
 

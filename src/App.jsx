@@ -547,6 +547,8 @@ export default function App(){
   const[authReady,setAuthReady]=useState(false);
   const[showProfile,setShowProfile]=useState(false);
   const[userProfile,setUserProfile]=useState(null);
+  const[orgId,setOrgId]=useState(null);
+  const[orgName,setOrgName]=useState("");
   const fileRef=useRef(null);
 
   const d=show?shows[show]:null;
@@ -650,10 +652,16 @@ Write ONLY the sections above. No labels, no commentary, no extra text.`;
   async function handleAuthenticated(user) {
     setCurrentUser(user);
     setAuthReady(true);
-    // Load user profile
+    // Load user profile + org
     try {
-      const { data } = await supabase.from("profiles").select("name, timezone, role").eq("id", user.id).single();
+      const { data } = await supabase
+        .from("profiles")
+        .select("name, timezone, role, org_id, organizations(name)")
+        .eq("id", user.id)
+        .single();
       setUserProfile(data);
+      setOrgId(data?.org_id || null);
+      setOrgName(data?.organizations?.name || "");
       // Check admin: role in profiles OR hardcoded admin emails
       const adminEmails = ["tamar@podcastimpactstudio.com", "tamarroutly@gmail.com"];
       const isAdminUser = data?.role === "admin" || adminEmails.includes(user.email?.toLowerCase());
@@ -671,6 +679,8 @@ Write ONLY the sections above. No labels, no commentary, no extra text.`;
     setAuthReady(false);
     setIsAdmin(false);
     setUserProfile(null);
+    setOrgId(null);
+    setOrgName("");
     setShowProfile(false);
     reset();
   }
@@ -742,14 +752,14 @@ Write ONLY the sections above. No labels, no commentary, no extra text.`;
       <style>{`*{box-sizing:border-box}@keyframes spin{to{transform:rotate(360deg)}}@keyframes pulse{0%,100%{opacity:.3}50%{opacity:1}}@keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}textarea::placeholder,input::placeholder{color:${T.textMuted}}button:hover{opacity:.85}::-webkit-scrollbar{width:4px}::-webkit-scrollbar-thumb{background:${T.cardBorder};border-radius:2px}a{transition:opacity .2s}a:hover{opacity:.7}`}</style>
 
       {showProfile&&currentUser&&<Profile user={currentUser} onClose={()=>setShowProfile(false)} onSignOut={handleSignOut}/>}
-      {showAdmin&&<AdminPanel shows={shows} onClose={()=>setShowAdmin(false)} onSaved={refreshShows}/>}
+      {showAdmin&&<AdminPanel shows={shows} orgId={orgId} onClose={()=>setShowAdmin(false)} onSaved={refreshShows}/>}
 
       {/* HEADER */}
       <div style={{padding:"0 40px",background:T.surface,borderBottom:`1px solid ${T.cardBorder}`,display:"flex",justifyContent:"space-between",alignItems:"stretch",height:"64px",flexShrink:0}}>
         <div style={{display:"flex",alignItems:"center",gap:"16px"}}>
           <div style={{width:"3px",height:"28px",background:T.coral,borderRadius:"2px"}}/>
           <div style={{display:"flex",alignItems:"baseline",gap:"12px"}}>
-            <span style={{fontSize:"24px",letterSpacing:"4px",textTransform:"uppercase",color:T.text,fontFamily:"'Inter', ui-sans-serif, system-ui, sans-serif",fontWeight:"800"}}>Podcast Impact Studio</span>
+            <span style={{fontSize:"24px",letterSpacing:"4px",textTransform:"uppercase",color:T.text,fontFamily:"'Inter', ui-sans-serif, system-ui, sans-serif",fontWeight:"800"}}>{orgName||"Podcast Impact Studio"}</span>
             <span style={{fontSize:"15px",letterSpacing:"4px",textTransform:"uppercase",color:T.coral,fontFamily:"'Inter', ui-sans-serif, system-ui, sans-serif",fontWeight:"600"}}>Content Creator</span>
           </div>
         </div>

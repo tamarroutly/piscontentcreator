@@ -60,31 +60,32 @@ export const DEFAULT_SHOWS = {
   }
 };
 
-// Load all shows: merge Supabase overrides on top of defaults
+// Load all shows for the current user's org (RLS handles scoping automatically)
 export async function loadShows() {
   try {
     const { data, error } = await supabase.from('shows').select('*');
     if (error) throw error;
 
-    const merged = { ...DEFAULT_SHOWS };
+    const merged = {};
     for (const row of data) {
-      merged[row.id] = { ...merged[row.id], ...row.dna, id: row.id, fromDB: true };
+      merged[row.id] = { ...row.dna, id: row.id, fromDB: true };
     }
     return merged;
   } catch (e) {
-    console.warn('Supabase unavailable, using defaults:', e.message);
-    return DEFAULT_SHOWS;
+    console.warn('Supabase unavailable:', e.message);
+    return {};
   }
 }
 
 // Save or update a show's DNA in Supabase
-export async function saveShow(id, dna) {
+export async function saveShow(id, dna, orgId) {
   const { error } = await supabase.from('shows').upsert({
     id,
     name: dna.name,
     dna,
+    org_id: orgId,
     updated_at: new Date().toISOString()
-  });
+  }, { onConflict: 'id' });
   if (error) throw error;
 }
 

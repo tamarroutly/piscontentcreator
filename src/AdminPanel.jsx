@@ -245,7 +245,7 @@ function BoilerplateEditor({ value, onChange }) {
 }
 
 
-function SettingsView({ globalSettings, setGlobalSettings, saveGlobalSettings, globalSettingsSaved, globalSettingsLoading }) {
+function SettingsView({ globalSettings, setGlobalSettings, saveGlobalSettings, globalSettingsSaved, globalSettingsLoading, orgId }) {
   const [activeSection, setActiveSection] = useState("integrations");
   const [team, setTeam] = useState([]);
   const [teamLoading, setTeamLoading] = useState(true);
@@ -260,7 +260,7 @@ function SettingsView({ globalSettings, setGlobalSettings, saveGlobalSettings, g
     async function loadTeam() {
       setTeamLoading(true);
       try {
-        const r = await fetch("/api/users");
+        const r = await fetch(`/api/users?orgId=${orgId}`);
         const data = await r.json();
         if (!r.ok) throw new Error(data.error);
         const savedTeam = globalSettings.team || [];
@@ -290,7 +290,7 @@ function SettingsView({ globalSettings, setGlobalSettings, saveGlobalSettings, g
       const r = await fetch("/api/invite", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: newMember.email.trim().toLowerCase(), role: newMember.role }),
+        body: JSON.stringify({ email: newMember.email.trim().toLowerCase(), role: newMember.role, orgId }),
       });
       const data = await r.json();
       if (!r.ok) throw new Error(data.error || "Failed to send invite.");
@@ -518,7 +518,7 @@ export function AdminGate({ onSuccess, onClose }) {
   );
 }
 
-export function AdminPanel({ shows, onClose, onSaved }) {
+export function AdminPanel({ shows, orgId, onClose, onSaved }) {
   const [adminView, setAdminView] = useState("shows");
   const [selKey, setSelKey] = useState(null);
   const [form, setForm] = useState(null);
@@ -546,7 +546,7 @@ export function AdminPanel({ shows, onClose, onSaved }) {
   async function saveGlobalSettings(newSettings) {
     setGlobalSettingsLoading(true);
     try {
-      await supabase.from("settings").upsert({ key: "global", value: newSettings }, { onConflict: "key" });
+      await supabase.from("settings").upsert({ key: "global", value: newSettings, org_id: orgId }, { onConflict: "org_id,key" });
       setGlobalSettings(newSettings);
       setGlobalSettingsSaved(true);
       setTimeout(() => setGlobalSettingsSaved(false), 2000);
@@ -683,7 +683,7 @@ export function AdminPanel({ shows, onClose, onSaved }) {
         descriptApiKey: form.descriptApiKey || "",
         tpl: { sn: "", yt: "", sm: "", gk: "", em: "", bl: "" },
       };
-      await saveShow(id, dna);
+      await saveShow(id, dna, orgId);
       setMsg("Saved successfully!");
       if (selKey === "__new__") setSelKey(id);
       setAddingNew(false);
@@ -724,7 +724,7 @@ export function AdminPanel({ shows, onClose, onSaved }) {
       </div>
 
       {adminView === "settings" ? (
-        <SettingsView globalSettings={globalSettings} setGlobalSettings={setGlobalSettings} saveGlobalSettings={saveGlobalSettings} globalSettingsSaved={globalSettingsSaved} globalSettingsLoading={globalSettingsLoading} />
+        <SettingsView globalSettings={globalSettings} setGlobalSettings={setGlobalSettings} saveGlobalSettings={saveGlobalSettings} globalSettingsSaved={globalSettingsSaved} globalSettingsLoading={globalSettingsLoading} orgId={orgId} />
       ) : (
       <div style={{ flex: 1, display: "flex", overflow: "hidden" }}>
         <div style={{ width: "220px", background: T.surface, borderRight: "1px solid " + T.cardBorder, display: "flex", flexDirection: "column", flexShrink: 0 }}>
