@@ -9,8 +9,10 @@ const T = {
   text: "#FFFFFF", textSecondary: "#CECECE", textMuted: "#8E8EA0",
   coral: "#D97757", coralSoft: "#D9775718", coralMid: "#D9775740",
 };;
-const LS = { fontFamily: "'Inter', ui-sans-serif, system-ui, sans-serif" };
-const GA = { fontFamily: "'Inter', ui-sans-serif, system-ui, sans-serif" };
+const FF = "'Inter', ui-sans-serif, system-ui, sans-serif";
+const PF = "'Playfair Display', Georgia, serif";
+const LS = { fontFamily: FF };
+const GA = { fontFamily: FF };
 
 // Platform hub structure
 export const PLATFORM_CATEGORIES = [
@@ -44,13 +46,13 @@ const DEFAULT_SN_ELEMENTS = [
   { id: "custom_instructions", label: "Custom Instructions", enabled: false, text: "", header: "", hasText: true, hasHeader: true, textLabel: "Instructions for AI", textPlaceholder: "e.g. Identify specialized terms and define them.", headerPlaceholder: "e.g. Definitions, Key Terms" },
 ];
 
-function lbl(extra) { return { fontSize: "13px", letterSpacing: "2px", textTransform: "uppercase", color: T.text, marginBottom: "8px", display: "block", ...LS, ...(extra||{}) }; }
-function fld(extra) { return { width: "100%", background: T.surface, border: "1px solid " + T.cardBorder, borderRadius: "6px", padding: "10px 14px", color: T.text, fontSize: "15px", outline: "none", boxSizing: "border-box", ...GA, ...(extra||{}) }; }
+function lbl(extra) { return { fontSize: "13px", letterSpacing: "2px", textTransform: "uppercase", color: T.textSecondary, marginBottom: "8px", display: "block", ...LS, ...(extra||{}) }; }
+function fld(extra) { return { width: "100%", background: T.surface, border: "1px solid " + T.cardBorder, borderRadius: "6px", padding: "10px 14px", color: T.text, fontSize: "16px", outline: "none", boxSizing: "border-box", ...GA, ...(extra||{}) }; }
 
 function Section({ title, children }) {
   return (
-    <div style={{ marginBottom: "24px" }}>
-      <div style={{ fontSize: "13px", letterSpacing: "3px", textTransform: "uppercase", color: T.coral, marginBottom: "14px", paddingBottom: "8px", borderBottom: "1px solid " + T.cardBorder, ...LS, fontWeight: "700" }}>{title}</div>
+    <div style={{ marginBottom: "28px" }}>
+      <div style={{ fontSize: "20px", color: T.coral, marginBottom: "14px", paddingBottom: "10px", borderBottom: "1px solid " + T.cardBorder, fontFamily: PF, fontWeight: "600" }}>{title}</div>
       {children}
     </div>
   );
@@ -311,7 +313,7 @@ function SettingsView({ globalSettings, setGlobalSettings, saveGlobalSettings, g
     { id: "billing", label: "Billing", icon: "💳" },
   ];
 
-  const inp = { width: "100%", background: T.surface, border: "1px solid " + T.cardBorder, borderRadius: "6px", padding: "9px 12px", color: T.text, fontSize: "14px", outline: "none", boxSizing: "border-box", fontFamily: "'Inter', ui-sans-serif, system-ui, sans-serif" };
+  const inp = { width: "100%", background: T.surface, border: "1px solid " + T.cardBorder, borderRadius: "6px", padding: "10px 14px", color: T.text, fontSize: "16px", outline: "none", boxSizing: "border-box", fontFamily: FF };
 
   function SaveBtn({ onClick }) {
     return (
@@ -342,8 +344,8 @@ function SettingsView({ globalSettings, setGlobalSettings, saveGlobalSettings, g
         {activeSection === "integrations" && (
           <div style={{ maxWidth: "680px" }}>
             <div style={{ marginBottom: "28px" }}>
-              <div style={{ fontSize: "22px", fontWeight: "700", color: T.text, marginBottom: "6px" }}>Integrations</div>
-              <div style={{ fontSize: "15px", color: T.textMuted, fontStyle: "italic" }}>Connect external tools to enhance your workflow.</div>
+              <div style={{ fontSize: "28px", fontWeight: "600", color: T.text, marginBottom: "6px", fontFamily: PF }}>Integrations</div>
+              <div style={{ fontSize: "15px", color: T.textMuted, fontFamily: FF }}>Connect external tools to enhance your workflow.</div>
             </div>
             <div style={{ background: T.card, border: "1px solid " + T.cardBorder, borderRadius: "12px", marginBottom: "16px", overflow: "hidden" }}>
               <div style={{ padding: "20px 24px", borderBottom: "1px solid " + T.cardBorder, display: "flex", alignItems: "center", gap: "12px" }}>
@@ -379,7 +381,7 @@ function SettingsView({ globalSettings, setGlobalSettings, saveGlobalSettings, g
         {activeSection === "workspace" && (
           <div style={{ maxWidth: "680px" }}>
             <div style={{ marginBottom: "28px" }}>
-              <div style={{ fontSize: "22px", fontWeight: "700", color: T.text, marginBottom: "6px" }}>Workspace</div>
+              <div style={{ fontSize: "28px", fontWeight: "600", color: T.text, marginBottom: "6px", fontFamily: PF }}>Workspace</div>
               <div style={{ fontSize: "15px", color: T.textMuted, fontStyle: "italic" }}>Configure your production workspace.</div>
             </div>
             <div style={{ background: T.card, border: "1px solid " + T.cardBorder, borderRadius: "12px", padding: "24px" }}>
@@ -400,7 +402,7 @@ function SettingsView({ globalSettings, setGlobalSettings, saveGlobalSettings, g
         {activeSection === "team" && (
           <div style={{ maxWidth: "680px" }}>
             <div style={{ marginBottom: "28px" }}>
-              <div style={{ fontSize: "22px", fontWeight: "700", color: T.text, marginBottom: "6px" }}>Team</div>
+              <div style={{ fontSize: "28px", fontWeight: "600", color: T.text, marginBottom: "6px", fontFamily: PF }}>Team</div>
               <div style={{ fontSize: "15px", color: T.textMuted, fontStyle: "italic" }}>Manage who has access to this workspace.</div>
             </div>
             <div style={{ background: T.card, border: "1px solid " + T.cardBorder, borderRadius: "12px", overflow: "hidden" }}>
@@ -473,7 +475,7 @@ function SettingsView({ globalSettings, setGlobalSettings, saveGlobalSettings, g
         {activeSection === "billing" && (
           <div style={{ maxWidth: "680px" }}>
             <div style={{ marginBottom: "28px" }}>
-              <div style={{ fontSize: "22px", fontWeight: "700", color: T.text, marginBottom: "6px" }}>Billing</div>
+              <div style={{ fontSize: "28px", fontWeight: "600", color: T.text, marginBottom: "6px", fontFamily: PF }}>Billing</div>
               <div style={{ fontSize: "15px", color: T.textMuted, fontStyle: "italic" }}>Manage your subscription and usage.</div>
             </div>
             <div style={{ background: T.card, border: "1px solid " + T.cardBorder, borderRadius: "12px", padding: "24px" }}>
@@ -708,7 +710,7 @@ export function AdminPanel({ shows, orgId, onClose, onSaved }) {
         <div style={{ padding: "0 32px", display: "flex", justifyContent: "space-between", alignItems: "center", height: "56px" }}>
           <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
             <div style={{ width: "3px", height: "24px", background: T.coral, borderRadius: "2px" }} />
-            <span style={{ fontSize: "16px", letterSpacing: "2px", textTransform: "uppercase", color: T.text, fontFamily: "'Inter', ui-sans-serif, system-ui, sans-serif", fontWeight: "700" }}>Podcast Impact Studio</span>
+            <span style={{ fontSize: "20px", color: T.text, fontFamily: PF, fontWeight: "700" }}>Podcast Impact Studio</span>
             <span style={{ fontSize: "11px", color: T.textMuted, fontFamily: "'Inter', ui-sans-serif, system-ui, sans-serif", background: T.card, padding: "3px 8px", borderRadius: "4px", border: "1px solid " + T.cardBorder }}>Admin</span>
           </div>
           <button onClick={onClose} style={{ padding: "8px 16px", background: "transparent", border: "1px solid " + T.cardBorder, borderRadius: "6px", color: T.textSecondary, fontSize: "13px", cursor: "pointer", fontFamily: "'Inter', ui-sans-serif, system-ui, sans-serif" }}>✕ Close</button>
@@ -735,8 +737,8 @@ export function AdminPanel({ shows, orgId, onClose, onSaved }) {
             {Object.entries(shows).map(([k, s]) => (
               <div key={k} onClick={() => selectShow(k)}
                 style={{ padding: "12px 14px", borderRadius: "6px", cursor: "pointer", background: selKey === k ? (s.clr ? s.clr + "18" : T.coralSoft) : "transparent", border: "1px solid " + (selKey === k ? (s.clr || T.coral) + "44" : "transparent"), marginBottom: "4px", transition: "all .15s" }}>
-                <div style={{ fontSize: "15px", color: T.coral, fontWeight: "600", ...LS, marginBottom: "2px" }}>{s.name}</div>
-                <div style={{ fontSize: "13px", color: T.textSecondary, ...GA, fontStyle: "italic" }}>{(s.tag || "").substring(0, 35)}{(s.tag || "").length > 35 ? "..." : ""}</div>
+                <div style={{ fontSize: "16px", color: selKey === k ? (s.clr || T.coral) : T.coral, fontWeight: "600", fontFamily: PF, marginBottom: "3px" }}>{s.name}</div>
+                <div style={{ fontSize: "13px", color: T.textMuted, fontFamily: FF, fontStyle: "italic" }}>{(s.tag || "").substring(0, 40)}{(s.tag || "").length > 40 ? "..." : ""}</div>
               </div>
             ))}
           </div>
