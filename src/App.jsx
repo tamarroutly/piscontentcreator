@@ -805,9 +805,9 @@ Write ONLY the sections above. No labels, no commentary, no extra text.`;
                   {Object.entries(shows).sort(([,a],[,b])=>a.name.localeCompare(b.name)).map(([k,s])=>(
                     <div key={k} onClick={()=>{setShow(k);setStep("mode");}} style={{background:show===k?T.coralSoft:T.card,border:show===k?`1px solid ${s.clr||T.coral}`:` 1px solid ${T.cardBorder}`,borderRadius:"10px",padding:"22px 24px",cursor:"pointer",transition:"all .15s",position:"relative"}}>
                       {show===k&&<div style={{position:"absolute",top:"50%",right:"20px",transform:"translateY(-50%)",width:"8px",height:"8px",borderRadius:"50%",background:T.coral}}/>}
-                      <div style={{fontSize:"18px",color:T.coral,fontWeight:"600",marginBottom:"4px",fontFamily:PF}}>{s.name}</div>
-                      <div style={{fontSize:"14px",color:T.textMuted,fontStyle:"italic",lineHeight:"1.5"}}>{s.tag}</div>
-                      {s.publishDay&&s.publishTime&&s.publishTz&&(()=>{try{const sched=formatPublishSchedule(s,userProfile?.timezone);if(!sched)return null;return(<div style={{fontSize:"12px",color:T.textMuted,marginTop:"8px",display:"flex",alignItems:"center",gap:"6px"}}><span style={{color:T.coral}}>📅</span><span>{sched.showTime}{sched.isDifferent?" · "+sched.localTime+" your time":""}</span></div>);}catch{return null;}})()}
+                      <div style={{fontSize:"22px",color:T.coral,fontWeight:"600",marginBottom:"6px",fontFamily:PF}}>{s.name}</div>
+                      <div style={{fontSize:"16px",color:T.textMuted,fontStyle:"italic",lineHeight:"1.5"}}>{s.tag}</div>
+                      {s.publishDay&&s.publishTime&&s.publishTz&&(()=>{try{const sched=formatPublishSchedule(s,userProfile?.timezone);if(!sched)return null;return(<div style={{fontSize:"14px",color:T.textMuted,marginTop:"8px",display:"flex",alignItems:"center",gap:"6px"}}><span style={{color:T.coral}}>📅</span><span>{sched.showTime}{sched.isDifferent?" · "+sched.localTime+" your time":""}</span></div>);}catch{return null;}})()}
                     </div>
                   ))}
                 </div>
