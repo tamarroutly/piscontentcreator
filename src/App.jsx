@@ -20,9 +20,9 @@ const MODES = [
 ];
 
 function strip(t){if(!t)return "";const B=String.fromCharCode(96);const r1=new RegExp(B+"{3}[\\s\\S]*?"+B+"{3}","g");const r2=new RegExp(B+"([^"+B+"]+)"+B,"g");return t.replace(/^#{1,6}\s+/gm,"").replace(/\*\*\*(.*?)\*\*\*/g,"$1").replace(/\*\*(.*?)\*\*/g,"$1").replace(/\*(.*?)\*/g,"$1").replace(/__(.*?)__/g,"$1").replace(r1,"").replace(r2,"$1").replace(/^\s*[-*+]\s+/gm,"- ").replace(/\[([^\]]+)\]\([^)]+\)/g,"$1").replace(/^>\s+/gm,"").replace(/^---+$/gm,"").replace(/\n{3,}/g,"\n\n").trim();}
-function parse(raw){const ps=[{id:"titles",r:[/SEO TITLE/i]},{id:"shownotes",r:[/SHOW NOTES/i]},{id:"spotify-creators",r:[/SPOTIFY FOR CREATORS/i]},{id:"editor-hooks",r:[/INTRO HOOK REC/i]},{id:"editor-clips",r:[/SOCIAL (MEDIA )?CLIP REC/i,/SOCIAL CLIP REC/i]},{id:"editor-notes",r:[/EDITOR NOTES/i]},{id:"youtube",r:[/YOUTUBE DESC/i]},{id:"social",r:[/SOCIAL MEDIA(?! CLIP)/i]},{id:"quotes",r:[/QUOTE CARDS/i,/PULL QUOTES/i]},{id:"guestkit",r:[/GUEST SHARE/i]},{id:"email",r:[/EMAIL NEWS/i,/^(?!.*(PATREON|CIRCLE|MIGHTY|KAJABI|SKOOL|FACEBOOK GROUP)).*NEWSLETTER/i]},{id:"blog",r:[/BLOG ART/i,/BLOG POST/i]},{id:"community-companion",r:[/COMPANION POST/i]},{id:"community-prompts",r:[/COMMUNITY FEED PROMPTS/i,/DISCUSSION PROMPTS/i]},{id:"community-polls",r:[/POLL IDEAS/i,/(?:PATREON|CIRCLE|MIGHTY|KAJABI|SKOOL|FACEBOOK) POLL/i]},{id:"community-starters",r:[/CONVERSATION STARTERS/i]},{id:"clips",r:[/^\d+\.\s*CLIPS/i,/^\d+\.\s*SHORTS/i,/^\d+\.\s*REELS/i]}];const c=strip(raw),lines=c.split("\n"),secs=[];let ti=null,id="intro",buf=[];for(const l of lines){let h=false;for(const p of ps){if(p.r.some(r=>r.test(l))){if(buf.length)secs.push({id,title:ti||"Overview",content:buf.join("\n").trim()});ti=l.replace(/^\d+\.\s*/,"").trim();id=p.id;buf=[];h=true;break;}}if(!h)buf.push(l);}if(buf.length)secs.push({id,title:ti||"Content",content:buf.join("\n").trim()});return secs.filter(s=>s.content.length>0);}
+function parse(raw){const ps=[{id:"titles",r:[/SEO TITLE/i]},{id:"shownotes",r:[/SHOW NOTES/i]},{id:"spotify-creators",r:[/SPOTIFY FOR CREATORS/i]},{id:"editor-hooks",r:[/INTRO HOOK REC/i]},{id:"editor-clips",r:[/SOCIAL (MEDIA )?CLIP REC/i,/SOCIAL CLIP REC/i]},{id:"editor-notes",r:[/EDITOR NOTES/i]},{id:"youtube",r:[/YOUTUBE DESC/i]},{id:"social",r:[/SOCIAL MEDIA(?! CLIP)/i]},{id:"quotes",r:[/QUOTE CARDS/i,/PULL QUOTES/i]},{id:"poll-questions",r:[/POLL QUESTIONS/i]},{id:"story-slides",r:[/STORY SLIDES/i]},{id:"engagement-prompts",r:[/ENGAGEMENT PROMPTS/i]},{id:"takeaway-graphics",r:[/KEY TAKEAWAY GRAPHICS/i]},{id:"guestkit",r:[/GUEST SHARE/i]},{id:"email",r:[/EMAIL NEWS/i,/^(?!.*(PATREON|CIRCLE|MIGHTY|KAJABI|SKOOL|FACEBOOK GROUP)).*NEWSLETTER/i]},{id:"blog",r:[/BLOG ART/i,/BLOG POST/i]},{id:"community-companion",r:[/COMPANION POST/i]},{id:"community-prompts",r:[/COMMUNITY FEED PROMPTS/i,/DISCUSSION PROMPTS/i]},{id:"community-polls",r:[/POLL IDEAS/i,/(?:PATREON|CIRCLE|MIGHTY|KAJABI|SKOOL|FACEBOOK) POLL/i]},{id:"community-starters",r:[/CONVERSATION STARTERS/i]},{id:"clips",r:[/^\d+\.\s*CLIPS/i,/^\d+\.\s*SHORTS/i,/^\d+\.\s*REELS/i]}];const c=strip(raw),lines=c.split("\n"),secs=[];let ti=null,id="intro",buf=[];for(const l of lines){let h=false;for(const p of ps){if(p.r.some(r=>r.test(l))){if(buf.length)secs.push({id,title:ti||"Overview",content:buf.join("\n").trim()});ti=l.replace(/^\d+\.\s*/,"").trim();id=p.id;buf=[];h=true;break;}}if(!h)buf.push(l);}if(buf.length)secs.push({id,title:ti||"Content",content:buf.join("\n").trim()});return secs.filter(s=>s.content.length>0);}
 
-const SM={titles:{l:"SEO Titles",i:"🎯"},shownotes:{l:"Show Notes",i:"📝"},"spotify-creators":{l:"Spotify for Creators",i:"🎵"},youtube:{l:"YouTube",i:"▶️"},"editor-hooks":{l:"Intro Hook Recommendations",i:"🎬"},"editor-clips":{l:"Social Clip Recommendations",i:"✂️"},"editor-notes":{l:"Editor Notes",i:"📋"},social:{l:"Social Media",i:"📱"},quotes:{l:"Quotes",i:"💬"},guestkit:{l:"Guest Kit",i:"🎁"},email:{l:"Newsletter",i:"📧"},blog:{l:"Blog",i:"📰"},"patreon-companion":{l:"Patreon Companion Post",i:"📝"},"patreon-discussion":{l:"Patreon Discussion Prompts",i:"💬"},"patreon-poll":{l:"Patreon Poll",i:"📊"},"patreon-newsletter":{l:"Patreon Newsletter",i:"📧"},"community-companion":{l:"Community Companion Post",i:"📝"},"community-prompts":{l:"Community Feed Prompts",i:"💬"},"community-polls":{l:"Community Polls",i:"📊"},"community-starters":{l:"Conversation Starters",i:"✨"},clips:{l:"Clips & Shorts",i:"✂️"},intro:{l:"Overview",i:"📋"}};
+const SM={titles:{l:"SEO Titles",i:"🎯"},shownotes:{l:"Show Notes",i:"📝"},"spotify-creators":{l:"Spotify for Creators",i:"🎵"},youtube:{l:"YouTube",i:"▶️"},"editor-hooks":{l:"Intro Hook Recommendations",i:"🎬"},"editor-clips":{l:"Social Clip Recommendations",i:"✂️"},"editor-notes":{l:"Editor Notes",i:"📋"},social:{l:"Social Media",i:"📱"},quotes:{l:"Quote Cards",i:"💬"},"poll-questions":{l:"Poll Questions",i:"📊"},"story-slides":{l:"Story Slides",i:"🎞️"},"engagement-prompts":{l:"Engagement Prompts",i:"💡"},"takeaway-graphics":{l:"Key Takeaway Graphics",i:"✨"},guestkit:{l:"Guest Kit",i:"🎁"},email:{l:"Newsletter",i:"📧"},blog:{l:"Blog",i:"📰"},"patreon-companion":{l:"Patreon Companion Post",i:"📝"},"patreon-discussion":{l:"Patreon Discussion Prompts",i:"💬"},"patreon-poll":{l:"Patreon Poll",i:"📊"},"patreon-newsletter":{l:"Patreon Newsletter",i:"📧"},"community-companion":{l:"Community Companion Post",i:"📝"},"community-prompts":{l:"Community Feed Prompts",i:"💬"},"community-polls":{l:"Community Polls",i:"📊"},"community-starters":{l:"Conversation Starters",i:"✨"},clips:{l:"Clips & Shorts",i:"✂️"},intro:{l:"Overview",i:"📋"}};
 const ED=[{id:"titles",l:"SEO Titles"},{id:"shownotes",l:"Show Notes"},{id:"youtube",l:"YouTube"},{id:"social",l:"Social Media"},{id:"guestkit",l:"Guest Kit",g:true},{id:"email",l:"Newsletter"},{id:"blog",l:"Blog"},{id:"quotes",l:"Quotes"},{id:"patreon-companion",l:"Patreon Companion Post",pm:true},{id:"patreon-discussion",l:"Patreon Discussion Prompts",pm:true},{id:"patreon-poll",l:"Patreon Poll",pm:true},{id:"patreon-newsletter",l:"Patreon Newsletter",pm:true},{id:"clips",l:"Clips & Shorts",cm:true}];
 
 function stripHtml(html) {
@@ -199,6 +199,62 @@ Write 4 short punchy posts for Stories, X, or short-form. Hook-first, 1-3 senten
     out += `${n++}. QUOTE CARDS\n[5 quotes under 25 words each, numbered. Pull exact quotes from transcript where possible.]\n---\n`;
   }
 
+  // POLL QUESTIONS
+  if (extras.includes("Poll Questions")) {
+    out += `${n++}. POLL QUESTIONS
+Write 5 social media poll questions based on key moments or debates from this episode. Each poll should spark engagement and be usable on Instagram Stories, LinkedIn, or Facebook.
+
+Format each poll exactly as:
+Poll [#]: [Question — short, direct, under 12 words]
+🅰️ [Option A]
+🅱️ [Option B]
+🅲️ [Option C — optional third choice if relevant]
+Episode tie-in: [1 sentence connecting the poll to a specific moment or insight from the episode]
+---
+`;
+  }
+
+  // STORY SLIDES
+  if (extras.includes("Story Slides")) {
+    out += `${n++}. STORY SLIDES
+Write a 5-slide Instagram/Facebook Story sequence for this episode. Each slide should be a standalone piece of content designed for a 1080x1920 vertical format.
+
+Format each slide as:
+SLIDE [#] — [Slide type: e.g. Hook, Insight, Quote, CTA]
+Headline: [Bold text — 6 words max]
+Body: [Supporting text — 2-3 lines max, large enough to read on mobile]
+Visual note: [Brief direction for the designer — color, style, or layout suggestion]
+---
+`;
+  }
+
+  // ENGAGEMENT PROMPTS
+  if (extras.includes("Engagement Prompts")) {
+    out += `${n++}. ENGAGEMENT PROMPTS
+Write 6 engagement prompts based on specific moments from this episode. These are designed to be posted in comments, community spaces, or as standalone social posts to spark conversation.
+
+Format each prompt as:
+Prompt [#]: [Question or statement — conversational, under 20 words]
+Platform: [Best platform — Instagram, Facebook, LinkedIn, or Community]
+Hook angle: [e.g. Relatable struggle, Bold claim, Curiosity gap, Personal challenge]
+---
+`;
+  }
+
+  // KEY TAKEAWAY GRAPHICS
+  if (extras.includes("Key Takeaway Graphics")) {
+    out += `${n++}. KEY TAKEAWAY GRAPHICS
+Write 5 key takeaways from this episode formatted for graphic design. Each takeaway should work as a standalone visual post — bold, punchy, and shareable.
+
+Format each takeaway as:
+Graphic [#]:
+Main text: [The takeaway — under 15 words, written as a statement or insight]
+Supporting text: [1 short sentence adding context — under 20 words]
+Source label: [e.g. "[Show Name] — Episode [#]"]
+---
+`;
+  }
+
   // GUEST KIT
   if (g && extras.includes("Guest Kit")) {
     out += `${n++}. GUEST SHARE KIT\n[Thank you note from host, episode blurb for guest to share, 2-3 suggested social captions pre-written for guest]\n---\n`;
@@ -286,7 +342,7 @@ function revSys(show){const d=show;if(!d)return "";return `Content strategist fo
 
 function linkifyLine(line){return line.replace(/(https?:\/\/[^\s,)"]+|www\.[^\s,)"]+|[a-zA-Z0-9][a-zA-Z0-9\-]*\.(?:com|org|net|io|co)(?:\/[^\s,)"]*)?)/g,url=>{const href=url.startsWith("http")?url:"https://"+url;return`<a href="${href}" style="color:#FF3131">${url}</a>`;});}
 
-const TOP_SECTIONS=/^(\d+\.\s*)?(SEO TITLE|SHOW NOTES|SPOTIFY FOR CREATORS|INTRO HOOK|SOCIAL CLIP|EDITOR NOTES|YOUTUBE DESC|SOCIAL MEDIA|QUOTE CARDS|GUEST SHARE|EMAIL NEWS|NEWSLETTER|BLOG (ARTICLE|POST)|PATREON (COMPANION|DISCUSSION|POLL|EXCLUSIVE|POSTS|NEWSLETTER)|CLIPS|SHORTS|REELS)/i;
+const TOP_SECTIONS=/^(\d+\.\s*)?(SEO TITLE|SHOW NOTES|SPOTIFY FOR CREATORS|INTRO HOOK|SOCIAL CLIP|EDITOR NOTES|YOUTUBE DESC|SOCIAL MEDIA|QUOTE CARDS|POLL QUESTIONS|STORY SLIDES|ENGAGEMENT PROMPTS|KEY TAKEAWAY GRAPHICS|GUEST SHARE|EMAIL NEWS|NEWSLETTER|BLOG (ARTICLE|POST)|PATREON (COMPANION|DISCUSSION|POLL|EXCLUSIVE|POSTS|NEWSLETTER)|CLIPS|SHORTS|REELS)/i;
 const SUB_HEADERS=/^(KEY TAKEAWAYS|NOTABLE QUOTE|TIMESTAMPS|HASHTAGS|KEYWORDS|INSTAGRAM|FACEBOOK|TIKTOK|LINKEDIN|X \(TWITTER\)|QUOTE CARDS|THANK YOU|EPISODE BLURB|SUGGESTED SOCIAL|SUBJECT LINE|PREVIEW TEXT|SOBER SHOT|ELLEVATED ACHIEVERS TAKEAWAY|IN THIS EPISODE|LINKS & RESOURCES|NOTABLE RESOURCES|CONNECT WITH|ABOUT|MUSIC CREDITS|DISCLAIMER)/i;
 
 function dlDoc(content,filename){
@@ -329,7 +385,7 @@ function textToHtml(text){
     const t = line.trim();
     if (!t) return "<br>";
     // Section headers (ALL CAPS lines) -> bold red
-    if (/^(\d+\.\s*)?(SEO TITLE|SHOW NOTES|SPOTIFY FOR CREATORS|YOUTUBE DESC|SOCIAL MEDIA|QUOTE CARDS|GUEST SHARE|EMAIL NEWS|NEWSLETTER|BLOG|PATREON|CLIPS|TIMESTAMPS|HASHTAGS|KEYWORDS)/i.test(t)) {
+    if (/^(\d+\.\s*)?(SEO TITLE|SHOW NOTES|SPOTIFY FOR CREATORS|YOUTUBE DESC|SOCIAL MEDIA|QUOTE CARDS|POLL QUESTIONS|STORY SLIDES|ENGAGEMENT PROMPTS|KEY TAKEAWAY GRAPHICS|GUEST SHARE|EMAIL NEWS|NEWSLETTER|BLOG|PATREON|CLIPS|TIMESTAMPS|HASHTAGS|KEYWORDS)/i.test(t)) {
       return `<p><strong style="color:#CC0000;text-transform:uppercase;">${t}</strong></p>`;
     }
     // Sub headers (KEY TAKEAWAYS, NOTABLE QUOTE etc) -> bold
@@ -374,7 +430,7 @@ function fallbackCopy(text){
 
 function Cp({text}){const[ok,setOk]=useState(false);return <button onClick={()=>{copyText(text);setOk(true);setTimeout(()=>setOk(false),1800);}} style={{padding:"5px 14px",background:ok?T.coralSoft:"transparent",border:`1px solid ${ok?T.coralMid:T.cardBorder}`,borderRadius:"6px",color:ok?T.coral:T.textMuted,fontSize:"12px",cursor:"pointer",fontFamily:"'Inter', ui-sans-serif, system-ui, sans-serif",transition:"all .25s",whiteSpace:"nowrap",letterSpacing:"1px"}}>{ok?"✓ COPIED":"COPY"}</button>;}
 
-function isTopSection(line){const t=line.trim();return /^(\d+\.\s*)?(SEO TITLE|SHOW NOTES|SPOTIFY FOR CREATORS|INTRO HOOK|SOCIAL CLIP|EDITOR NOTES|YOUTUBE DESC|SOCIAL MEDIA|QUOTE CARDS|GUEST SHARE|EMAIL NEWS|NEWSLETTER|BLOG (ARTICLE|POST)|PATREON|CLIPS|SHORTS|REELS)/i.test(t);}
+function isTopSection(line){const t=line.trim();return /^(\d+\.\s*)?(SEO TITLE|SHOW NOTES|SPOTIFY FOR CREATORS|INTRO HOOK|SOCIAL CLIP|EDITOR NOTES|YOUTUBE DESC|SOCIAL MEDIA|QUOTE CARDS|POLL QUESTIONS|STORY SLIDES|ENGAGEMENT PROMPTS|KEY TAKEAWAY GRAPHICS|GUEST SHARE|EMAIL NEWS|NEWSLETTER|BLOG (ARTICLE|POST)|PATREON|CLIPS|SHORTS|REELS)/i.test(t);}
 function isSubHeader(line){const t=line.trim();if(!t||t.length<3)return false;if(/^[-\u2022*\d"(@]/.test(t))return false;if(isTopSection(line))return false;if(t.split(/\s+/).length>8)return false;const allCaps=/^[A-Z][A-Z\s&()\u00ae\u2122\/\-:\.]+$/.test(t)&&t.length>3;const titleCase=/^[A-Z][a-zA-Z]*(\s(&|[A-Z][a-zA-Z]*))*:?$/.test(t)&&t.length>3&&t.split(/\s+/).length<=6;return allCaps||titleCase;}
 
 function renderContent(text){
@@ -621,6 +677,19 @@ Write ONLY the sections above. No labels, no commentary, no extra text.`;
 
   function reset(){setStep("select");setShow(null);setMode(null);setGuest(null);setEp("");setTx("");setRaw("");setSecs([]);setErr("");setEditing(false);setESec(null);setETxt("");setExtraPlatforms([]);setClipCount(3);setClipTexts(Array(10).fill(""));setClipResults([]);setClipPlatforms(["YouTube"]);}
 
+  function goBack(){
+    setErr("");
+    if(step==="mode"){setStep("select");}
+    else if(step==="configure"){setStep("mode");}
+    else if(step==="clips-setup"){setStep("configure");}
+    else if(step==="input"){
+      if(mode==="editor")setStep("mode");
+      else if(mode==="clips")setStep("clips-setup");
+      else setStep("configure");
+    }
+    else if(step==="result"){setStep("input");}
+  }
+
   const lbl={fontSize:"15px",letterSpacing:"2px",textTransform:"uppercase",color:T.textMuted,marginBottom:"10px",display:"block",fontFamily:"'Inter', ui-sans-serif, system-ui, sans-serif"};
   const field={width:"100%",background:T.surface,border:`1px solid ${T.cardBorder}`,borderRadius:"8px",padding:"14px 18px",color:T.text,fontSize:"15px",fontFamily:"'Inter', ui-sans-serif, system-ui, sans-serif",outline:"none",boxSizing:"border-box"};
   const primary=c=>({width:"100%",padding:"16px",background:c||T.coral,border:"none",borderRadius:"8px",color:"#fff",fontSize:"16px",fontWeight:"700",cursor:"pointer",letterSpacing:"2px",fontFamily:"'Inter', ui-sans-serif, system-ui, sans-serif",textTransform:"uppercase",marginTop:"20px"});
@@ -685,7 +754,8 @@ Write ONLY the sections above. No labels, no commentary, no extra text.`;
           </div>
         </div>
         <div style={{display:"flex",gap:"10px",alignItems:"center"}}>
-          {step!=="select"&&<button onClick={reset} style={ghost}>← Start Over</button>}
+          {step!=="select"&&step!=="generating"&&<button onClick={goBack} style={ghost}>← Back</button>}
+          {step!=="select"&&step!=="generating"&&<button onClick={reset} style={{...ghost,opacity:.5,fontSize:"13px",padding:"7px 14px"}}>Start Over</button>}
           <button onClick={()=>setShowProfile(true)} style={{...ghost,border:"none",opacity:.6,fontSize:"14px",padding:"8px 10px"}} title="My Account">👤</button>
           {isAdmin&&<button onClick={()=>setShowAdmin(true)} style={{...ghost,border:"none",opacity:.7,fontSize:"16px",padding:"8px 10px"}} title="Admin Settings">⚙️</button>}
         </div>
