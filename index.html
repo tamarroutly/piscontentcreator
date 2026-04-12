@@ -5,7 +5,8 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>pis-content-creator</title>
-    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>
+    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit&onload=onloadTurnstile" async defer></script>
+    <script>function onloadTurnstile(){window.__turnstileReady=true;if(window.__turnstileCallback)window.__turnstileCallback();}</script>
   </head>
   <body>
     <div id="root"></div>

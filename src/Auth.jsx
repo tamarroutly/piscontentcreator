@@ -215,21 +215,15 @@ function SignupScreen({ onSwitch, onAuthenticated }) {
       }
     };
 
-    const tryRender = () => {
-      if (window.turnstile) {
-        requestAnimationFrame(doRender);
-      } else {
-        const t = setInterval(() => {
-          if (window.turnstile) { clearInterval(t); requestAnimationFrame(doRender); }
-        }, 100);
-        return () => clearInterval(t);
-      }
-    };
+    if (window.__turnstileReady) {
+      doRender();
+    } else {
+      window.__turnstileCallback = doRender;
+    }
 
-    const cleanup = tryRender();
     return () => {
       cancelled = true;
-      if (cleanup) cleanup();
+      window.__turnstileCallback = null;
       try {
         if (localWidgetId != null && window.turnstile) window.turnstile.remove(localWidgetId);
       } catch (e) {}
