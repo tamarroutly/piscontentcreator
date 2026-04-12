@@ -1,5 +1,44 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+import { Turnstile } from "@marsidev/react-turnstile";
 import { supabase } from "./lib/supabase";
+
+const TURNSTILE_SITE_KEY = import.meta.env.VITE_TURNSTILE_SITE_KEY || "";
+
+// ── PASSWORD STRENGTH ─────────────────────────────────────────────────────────
+function getStrength(pw) {
+  if (!pw) return null;
+  let score = 0;
+  if (pw.length >= 8) score++;
+  if (pw.length >= 12) score++;
+  if (/[A-Z]/.test(pw)) score++;
+  if (/[0-9]/.test(pw)) score++;
+  if (/[^A-Za-z0-9]/.test(pw)) score++;
+  if (score <= 1) return { label: "Weak",        color: "#E55353", bars: 1 };
+  if (score === 2) return { label: "Fair",        color: "#F5A623", bars: 2 };
+  if (score === 3) return { label: "Good",        color: "#4CAF84", bars: 3 };
+  return              { label: "Strong",          color: "#52B788", bars: 4 };
+}
+
+function StrengthBar({ password }) {
+  const s = getStrength(password);
+  if (!s) return null;
+  return (
+    <div style={{ marginTop: "-6px", marginBottom: "12px" }}>
+      <div style={{ display: "flex", gap: "4px", marginBottom: "5px" }}>
+        {[1,2,3,4].map(i => (
+          <div key={i} style={{
+            flex: 1, height: "3px", borderRadius: "2px",
+            background: i <= s.bars ? s.color : "#3A3A3A",
+            transition: "background 0.2s ease",
+          }}/>
+        ))}
+      </div>
+      <div style={{ fontSize: "12px", color: s.color, fontFamily: "'Playfair Display', Georgia, serif", letterSpacing: "1px" }}>
+        {s.label}
+      </div>
+    </div>
+  );
+}
 
 const T = {
   bg: "#1A1A1A", surface: "#212121", card: "#2A2A2A", cardBorder: "#3A3A3A",
@@ -150,6 +189,7 @@ function SignupScreen({ onSwitch, onAuthenticated }) {
   const [timezone, setTimezone] = useState(Intl.DateTimeFormat().resolvedOptions().timeZone || "America/Vancouver");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
+  const [captchaToken, setCaptchaToken] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -159,12 +199,12 @@ function SignupScreen({ onSwitch, onAuthenticated }) {
     }
     if (password.length < 8) { setError("Password must be at least 8 characters."); return; }
     if (password !== confirm) { setError("Passwords don't match."); return; }
+    if (TURNSTILE_SITE_KEY && !captchaToken) { setError("Please complete the security check."); return; }
     setLoading(true); setError("");
     try {
-      const { data, error: signupError } = await supabase.auth.signUp({
-        email: email.trim().toLowerCase(),
-        password,
-      });
+      const signupOptions = { email: email.trim().toLowerCase(), password };
+      if (TURNSTILE_SITE_KEY && captchaToken) signupOptions.options = { captchaToken };
+      const { data, error: signupError } = await supabase.auth.signUp(signupOptions);
       if (signupError) throw signupError;
       if (!data.user) throw new Error("Signup failed — please try again.");
 
@@ -230,11 +270,18 @@ function SignupScreen({ onSwitch, onAuthenticated }) {
 
           <label style={lbl}>Password *</label>
           <input type="password" placeholder="At least 8 characters" value={password} onChange={e => setPassword(e.target.value)} style={inp} />
+          <StrengthBar password={password} />
           <input type="password" placeholder="Confirm password" value={confirm} onChange={e => setConfirm(e.target.value)} onKeyDown={e => e.key === "Enter" && handleSignup()} style={{ ...inp, marginBottom: "16px" }} />
 
           <div style={{ fontSize: "12px", color: T.textMuted, marginBottom: "16px", fontFamily: "'Playfair Display', Georgia, serif", lineHeight: "1.5" }}>
             Once you're in, you'll add your first podcast and can invite your team members from the admin panel.
           </div>
+
+          {TURNSTILE_SITE_KEY && (
+            <div style={{ marginBottom: "16px" }}>
+              <Turnstile siteKey={TURNSTILE_SITE_KEY} onSuccess={setCaptchaToken} onError={() => setCaptchaToken("")} onExpire={() => setCaptchaToken("")} options={{ theme: "dark", size: "normal" }} />
+            </div>
+          )}
 
           {error && <div style={{ color: "#F09090", fontSize: "14px", marginBottom: "12px", fontFamily: "'Playfair Display', Georgia, serif" }}>{error}</div>}
           <button onClick={handleSignup} disabled={loading} style={btn(true)}>
