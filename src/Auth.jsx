@@ -236,7 +236,6 @@ function SignupScreen({ onSwitch, onAuthenticated }) {
     }
     if (password.length < 8) { setError("Password must be at least 8 characters."); return; }
     if (password !== confirm) { setError("Passwords don't match."); return; }
-    if (TURNSTILE_SITE_KEY && !captchaToken) { setError("Please complete the security check."); return; }
     setLoading(true); setError("");
     try {
       const signupOptions = { email: email.trim().toLowerCase(), password };
@@ -261,7 +260,12 @@ function SignupScreen({ onSwitch, onAuthenticated }) {
 
       onAuthenticated(data.user);
     } catch (e) {
-      setError(e.message || "Signup failed.");
+      const msg = e.message || "";
+      if (msg.toLowerCase().includes("captcha") || msg.toLowerCase().includes("security")) {
+        setError("Security check failed. Please refresh the page and try again.");
+      } else {
+        setError(msg || "Signup failed.");
+      }
     } finally {
       setLoading(false);
     }
