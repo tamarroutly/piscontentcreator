@@ -500,6 +500,132 @@ function formatPublishSchedule(show, userTz) {
   } catch { return null; }
 }
 
+const OB_TIMEZONES = [
+  ["America/New_York","Eastern Time (ET)"],["America/Chicago","Central Time (CT)"],
+  ["America/Denver","Mountain Time (MT)"],["America/Los_Angeles","Pacific Time (PT)"],
+  ["America/Vancouver","Vancouver (PT)"],["America/Toronto","Toronto (ET)"],
+  ["Europe/London","London (GMT/BST)"],["Europe/Paris","Paris (CET)"],
+  ["Asia/Manila","Manila (PHT)"],["Asia/Tokyo","Tokyo (JST)"],
+  ["Australia/Sydney","Sydney (AEST)"],["Pacific/Auckland","Auckland (NZST)"],
+];
+
+function OnboardingScreen({ step, user, orgId, orgName, userProfile, onProfileDone, onAddShow }) {
+  const [name, setName] = useState(userProfile?.name || "");
+  const [company, setCompany] = useState(orgName || "");
+  const [timezone, setTimezone] = useState(userProfile?.timezone || "America/Vancouver");
+  const [saving, setSaving] = useState(false);
+  const [err, setErr] = useState("");
+
+  const obInp = {
+    width:"100%", background:T.surface, border:`1px solid ${T.cardBorder}`,
+    borderRadius:"8px", padding:"12px 16px", color:T.text, fontSize:"16px",
+    outline:"none", boxSizing:"border-box",
+    fontFamily:"'Inter', ui-sans-serif, system-ui, sans-serif",
+  };
+  const obLbl = {
+    fontSize:"12px", letterSpacing:"2px", textTransform:"uppercase",
+    color:T.textMuted, display:"block", marginBottom:"8px",
+    fontFamily:"'Inter', ui-sans-serif, system-ui, sans-serif",
+  };
+
+  async function handleProfileSave() {
+    if (!name.trim()) { setErr("Name is required."); return; }
+    setSaving(true); setErr("");
+    try {
+      const { error: profErr } = await supabase.from("profiles")
+        .update({ name: name.trim(), timezone })
+        .eq("id", user.id);
+      if (profErr) throw profErr;
+      if (company.trim() && orgId) {
+        const { error: orgErr } = await supabase.from("organizations")
+          .update({ name: company.trim() })
+          .eq("id", orgId);
+        if (orgErr) throw orgErr;
+      }
+      onProfileDone(name.trim(), company.trim(), timezone);
+    } catch(e) {
+      setErr("Error: " + e.message);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div style={{ minHeight:"100vh", background:T.bg, display:"flex", alignItems:"center", justifyContent:"center", padding:"24px" }}>
+      <div style={{ width:"100%", maxWidth:"520px" }}>
+        {/* Logo bar */}
+        <div style={{ display:"flex", alignItems:"center", gap:"12px", marginBottom:"48px", justifyContent:"center" }}>
+          <div style={{ width:"3px", height:"24px", background:T.coral, borderRadius:"2px" }} />
+          <span style={{ fontSize:"18px", letterSpacing:"4px", textTransform:"uppercase", color:T.text, fontFamily:"'Inter', ui-sans-serif, system-ui, sans-serif", fontWeight:"800" }}>Content Creator</span>
+        </div>
+
+        {step === "profile" && (
+          <div style={{ animation:"fadeUp .4s ease" }}>
+            <div style={{ marginBottom:"32px" }}>
+              <h1 style={{ fontSize:"40px", fontWeight:"700", color:T.text, margin:"0 0 12px", fontFamily:PF, lineHeight:"1.2" }}>
+                Welcome{company ? ` to ${company}` : ""}! 👋
+              </h1>
+              <p style={{ fontSize:"15px", color:T.textMuted, margin:0, lineHeight:"1.6", fontFamily:"'Inter', ui-sans-serif, system-ui, sans-serif" }}>
+                Before you dive in, let's make sure we have your details right.
+              </p>
+            </div>
+            <div style={{ background:T.card, border:`1px solid ${T.cardBorder}`, borderRadius:"12px", padding:"32px", display:"flex", flexDirection:"column", gap:"20px" }}>
+              <div>
+                <label style={obLbl}>Full Name</label>
+                <input value={name} onChange={e=>setName(e.target.value)} placeholder="Your name" style={obInp} />
+              </div>
+              <div>
+                <label style={obLbl}>Company Name <span style={{ textTransform:"none", letterSpacing:"0", opacity:.6 }}>(optional)</span></label>
+                <input value={company} onChange={e=>setCompany(e.target.value)} placeholder="Your business or agency name" style={obInp} />
+              </div>
+              <div>
+                <label style={obLbl}>Your Timezone</label>
+                <select value={timezone} onChange={e=>setTimezone(e.target.value)} style={{ ...obInp, cursor:"pointer" }}>
+                  {OB_TIMEZONES.map(([v,l])=><option key={v} value={v}>{l}</option>)}
+                </select>
+                <p style={{ fontSize:"12px", color:T.textMuted, margin:"6px 0 0", fontStyle:"italic", fontFamily:"'Inter', ui-sans-serif, system-ui, sans-serif" }}>
+                  Publish schedules will display in your local time.
+                </p>
+              </div>
+              {err && <p style={{ color:"#F09090", fontSize:"14px", margin:0, fontFamily:"'Inter', ui-sans-serif, system-ui, sans-serif" }}>{err}</p>}
+              <button onClick={handleProfileSave} disabled={saving} style={{ padding:"14px 28px", background:T.coral, border:"none", borderRadius:"8px", color:"#fff", fontSize:"16px", fontWeight:"700", cursor:"pointer", letterSpacing:"1px", fontFamily:"'Inter', ui-sans-serif, system-ui, sans-serif", alignSelf:"flex-start" }}>
+                {saving ? "Saving..." : "Continue →"}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {step === "show" && (
+          <div style={{ animation:"fadeUp .4s ease" }}>
+            <div style={{ marginBottom:"32px" }}>
+              <h1 style={{ fontSize:"40px", fontWeight:"700", color:T.text, margin:"0 0 12px", fontFamily:PF, lineHeight:"1.2" }}>
+                Now let's add your first show
+              </h1>
+              <p style={{ fontSize:"15px", color:T.textMuted, margin:0, lineHeight:"1.6", fontFamily:"'Inter', ui-sans-serif, system-ui, sans-serif" }}>
+                Set up a show profile so the AI knows exactly how to write for your podcast — voice, audience, platforms, and format.
+              </p>
+            </div>
+            <div style={{ background:T.card, border:`1px solid ${T.cardBorder}`, borderRadius:"12px", padding:"32px" }}>
+              <div style={{ fontSize:"48px", marginBottom:"16px", textAlign:"center" }}>🎙️</div>
+              <p style={{ fontSize:"15px", color:T.textMuted, textAlign:"center", lineHeight:"1.6", margin:"0 0 28px", fontFamily:"'Inter', ui-sans-serif, system-ui, sans-serif" }}>
+                The more detail you add, the better your content will be. You can always come back and update it.
+              </p>
+              <div style={{ textAlign:"center" }}>
+                <button onClick={onAddShow} style={{ padding:"14px 36px", background:T.coral, border:"none", borderRadius:"8px", color:"#fff", fontSize:"16px", fontWeight:"700", cursor:"pointer", letterSpacing:"1px", fontFamily:"'Inter', ui-sans-serif, system-ui, sans-serif" }}>
+                  Add My First Show →
+                </button>
+              </div>
+            </div>
+            <p style={{ fontSize:"13px", color:T.textMuted, textAlign:"center", marginTop:"20px", fontFamily:"'Inter', ui-sans-serif, system-ui, sans-serif" }}>
+              Once you've saved your show, you'll go straight into the app.
+            </p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function App(){
   const[shows,setShows]=useState({});
   const[loadingShows,setLoadingShows]=useState(true);
@@ -550,6 +676,8 @@ export default function App(){
   const[userProfile,setUserProfile]=useState(null);
   const[orgId,setOrgId]=useState(null);
   const[orgName,setOrgName]=useState("");
+  const[onboardingComplete,setOnboardingComplete]=useState(true);
+  const[onboardingStep,setOnboardingStep]=useState(null);
   const fileRef=useRef(null);
 
   const d=show?shows[show]:null;
@@ -661,12 +789,21 @@ Write ONLY the sections above. No labels, no commentary, no extra text.`;
         .eq("id", user.id)
         .single();
       setUserProfile(data);
-      setOrgId(data?.org_id || null);
+      const myOrgId = data?.org_id || null;
+      setOrgId(myOrgId);
       setOrgName(data?.organizations?.name || "");
       // Check admin: role in profiles OR hardcoded admin emails
       const adminEmails = ["tamar@podcastimpactstudio.com", "tamarroutly@gmail.com"];
       const isAdminUser = data?.role === "admin" || adminEmails.includes(user.email?.toLowerCase());
       setIsAdmin(isAdminUser);
+      // Load onboarding state
+      if (myOrgId) {
+        const { data: orgData } = await supabase.from("organizations")
+          .select("onboarding_complete").eq("id", myOrgId).single();
+        const complete = orgData?.onboarding_complete ?? true;
+        setOnboardingComplete(complete);
+        if (!complete) setOnboardingStep("profile");
+      }
     } catch {
       // If no profile yet, check by email
       const adminEmails = ["tamar@podcastimpactstudio.com", "tamarroutly@gmail.com"];
@@ -683,7 +820,19 @@ Write ONLY the sections above. No labels, no commentary, no extra text.`;
     setOrgId(null);
     setOrgName("");
     setShowProfile(false);
+    setOnboardingComplete(true);
+    setOnboardingStep(null);
     reset();
+  }
+
+  async function markOnboardingComplete() {
+    if (orgId) {
+      await supabase.from("organizations")
+        .update({ onboarding_complete: true })
+        .eq("id", orgId);
+    }
+    setOnboardingComplete(true);
+    setOnboardingStep(null);
   }
 
   function reset(){setStep("select");setShow(null);setMode(null);setGuest(null);setEp("");setTx("");setRaw("");setSecs([]);setErr("");setEditing(false);setESec(null);setETxt("");setExtraPlatforms([]);setClipCount(3);setClipTexts(Array(10).fill(""));setClipResults([]);setClipPlatforms(["YouTube"]);}
@@ -748,12 +897,35 @@ Write ONLY the sections above. No labels, no commentary, no extra text.`;
     return <Auth onAuthenticated={handleAuthenticated}/>;
   }
 
+  // Show onboarding for new users who haven't added a show yet
+  if(!onboardingComplete && onboardingStep){
+    return(
+      <div style={{minHeight:"100vh",width:"100%",background:T.bg,color:T.text}}>
+        <style>{`*{box-sizing:border-box}@keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}button:hover{opacity:.85}`}</style>
+        {showAdmin&&<AdminPanel shows={shows} orgId={orgId} onClose={()=>setShowAdmin(false)} onSaved={async()=>{await refreshShows();await markOnboardingComplete();setShowAdmin(false);}}/>}
+        <OnboardingScreen
+          step={onboardingStep}
+          user={currentUser}
+          orgId={orgId}
+          orgName={orgName}
+          userProfile={userProfile}
+          onProfileDone={(newName, newCompany, newTz)=>{
+            setOrgName(newCompany||orgName);
+            setUserProfile(p=>({...p,name:newName,timezone:newTz}));
+            setOnboardingStep("show");
+          }}
+          onAddShow={()=>setShowAdmin(true)}
+        />
+      </div>
+    );
+  }
+
   return(
     <div style={{minHeight:"100vh",width:"100%",background:T.bg,color:T.text,display:"flex",flexDirection:"column"}}>
       <style>{`*{box-sizing:border-box}@keyframes spin{to{transform:rotate(360deg)}}@keyframes pulse{0%,100%{opacity:.3}50%{opacity:1}}@keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}textarea::placeholder,input::placeholder{color:${T.textMuted}}button:hover{opacity:.85}::-webkit-scrollbar{width:4px}::-webkit-scrollbar-thumb{background:${T.cardBorder};border-radius:2px}a{transition:opacity .2s}a:hover{opacity:.7}`}</style>
 
       {showProfile&&currentUser&&<Profile user={currentUser} onClose={()=>setShowProfile(false)} onSignOut={handleSignOut}/>}
-      {showAdmin&&<AdminPanel shows={shows} orgId={orgId} onClose={()=>setShowAdmin(false)} onSaved={refreshShows}/>}
+      {showAdmin&&<AdminPanel shows={shows} orgId={orgId} onClose={()=>setShowAdmin(false)} onSaved={async()=>{await refreshShows();if(!onboardingComplete)await markOnboardingComplete();}}/>}
 
       {/* HEADER */}
       <div style={{padding:"0 40px",background:T.surface,borderBottom:`1px solid ${T.cardBorder}`,display:"flex",justifyContent:"space-between",alignItems:"stretch",height:"64px",flexShrink:0}}>

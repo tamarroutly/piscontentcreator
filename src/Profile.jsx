@@ -31,6 +31,8 @@ const inp = {
 
 export default function Profile({ user, onClose, onSignOut }) {
   const [name, setName] = useState("");
+  const [companyName, setCompanyName] = useState("");
+  const [orgId, setOrgId] = useState(null);
   const [timezone, setTimezone] = useState("America/Vancouver");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
@@ -39,11 +41,17 @@ export default function Profile({ user, onClose, onSignOut }) {
   const [tab, setTab] = useState("profile");
 
   useEffect(() => {
-    supabase.from("profiles").select("name, timezone").eq("id", user.id).single()
-      .then(({ data }) => {
+    supabase.from("profiles").select("name, timezone, org_id").eq("id", user.id).single()
+      .then(async ({ data }) => {
         if (data) {
           setName(data.name || "");
           setTimezone(data.timezone || "America/Vancouver");
+          setOrgId(data.org_id || null);
+          if (data.org_id) {
+            const { data: org } = await supabase.from("organizations")
+              .select("name").eq("id", data.org_id).single();
+            setCompanyName(org?.name || "");
+          }
         }
       });
   }, [user.id]);
@@ -56,6 +64,12 @@ export default function Profile({ user, onClose, onSignOut }) {
         .update({ name: name.trim(), timezone })
         .eq("id", user.id);
       if (error) throw error;
+      if (orgId && companyName.trim()) {
+        const { error: orgErr } = await supabase.from("organizations")
+          .update({ name: companyName.trim() })
+          .eq("id", orgId);
+        if (orgErr) throw orgErr;
+      }
       setMsg("✓ Profile saved");
       setTimeout(() => setMsg(""), 2000);
     } catch (e) {
@@ -114,6 +128,10 @@ export default function Profile({ user, onClose, onSignOut }) {
               <div style={{ marginBottom: "16px" }}>
                 <label style={{ fontSize: "12px", letterSpacing: "2px", textTransform: "uppercase", color: T.textMuted, display: "block", marginBottom: "8px", fontFamily: "'Inter', ui-sans-serif, system-ui, sans-serif" }}>Full Name</label>
                 <input value={name} onChange={e => setName(e.target.value)} placeholder="Your name" style={inp} />
+              </div>
+              <div style={{ marginBottom: "16px" }}>
+                <label style={{ fontSize: "12px", letterSpacing: "2px", textTransform: "uppercase", color: T.textMuted, display: "block", marginBottom: "8px", fontFamily: "'Inter', ui-sans-serif, system-ui, sans-serif" }}>Company Name <span style={{ textTransform: "none", letterSpacing: "0", opacity: 0.6 }}>(optional)</span></label>
+                <input value={companyName} onChange={e => setCompanyName(e.target.value)} placeholder="Your business or agency name" style={inp} />
               </div>
               <div style={{ marginBottom: "20px" }}>
                 <label style={{ fontSize: "12px", letterSpacing: "2px", textTransform: "uppercase", color: T.textMuted, display: "block", marginBottom: "8px", fontFamily: "'Inter', ui-sans-serif, system-ui, sans-serif" }}>Timezone</label>
