@@ -62,15 +62,15 @@ const TIMEZONES = [
 
 const inp = {
   width: "100%", background: "#2A2A2A", border: "1px solid #3A3A3A",
-  borderRadius: "8px", padding: "13px 16px", color: "#FFFFFF",
-  fontSize: "15px", outline: "none", boxSizing: "border-box",
+  borderRadius: "8px", padding: "14px 18px", color: "#FFFFFF",
+  fontSize: "17px", outline: "none", boxSizing: "border-box",
   fontFamily: "'Playfair Display', Georgia, serif",
-  marginBottom: "12px",
+  marginBottom: "14px",
 };
 
 const btn = (primary) => ({
-  width: "100%", padding: "14px", border: "none", borderRadius: "8px",
-  fontSize: "15px", fontWeight: "700", cursor: "pointer",
+  width: "100%", padding: "16px", border: "none", borderRadius: "8px",
+  fontSize: "17px", fontWeight: "700", cursor: "pointer",
   fontFamily: "'Playfair Display', Georgia, serif",
   background: primary ? T.coral : T.card,
   color: primary ? "#fff" : T.textMuted,
@@ -127,11 +127,11 @@ function LoginScreen({ onLogin, onSignup }) {
       <div style={{ width: "100%", maxWidth: "400px" }}>
         <div style={{ textAlign: "center", marginBottom: "40px" }}>
           <img src="/logo.png" alt="Podcast Impact Studio" style={{ height: "112px", width: "auto", marginBottom: "16px" }} />
-          <div style={{ fontSize: "28px", fontWeight: "800", color: T.text, letterSpacing: "-0.5px", fontFamily: "'Playfair Display', Georgia, serif" }}>Podcast Impact Studio</div>
-          <div style={{ fontSize: "15px", color: T.textMuted, marginTop: "6px", fontFamily: "'Playfair Display', Georgia, serif" }}>Content Creator</div>
+          <div style={{ fontSize: "36px", fontWeight: "800", color: T.text, letterSpacing: "-0.5px", fontFamily: "'Playfair Display', Georgia, serif" }}>Podcast Impact Studio</div>
+          <div style={{ fontSize: "18px", color: T.textMuted, marginTop: "8px", fontFamily: "'Playfair Display', Georgia, serif" }}>Content Creator</div>
         </div>
         <div style={{ background: T.card, border: "1px solid " + T.cardBorder, borderRadius: "12px", padding: "32px" }}>
-          <div style={{ fontSize: "20px", fontWeight: "700", color: T.text, marginBottom: "24px", fontFamily: "'Playfair Display', Georgia, serif" }}>Sign in</div>
+          <div style={{ fontSize: "26px", fontWeight: "700", color: T.text, marginBottom: "24px", fontFamily: "'Playfair Display', Georgia, serif" }}>Sign in</div>
           <input
             type="email" placeholder="Email address" value={email}
             onChange={e => setEmail(e.target.value)}
@@ -144,9 +144,9 @@ function LoginScreen({ onLogin, onSignup }) {
             onKeyDown={e => e.key === "Enter" && handleLogin()}
             style={inp}
           />
-          {error && <div style={{ color: "#F09090", fontSize: "14px", marginBottom: "10px", fontFamily: "'Playfair Display', Georgia, serif" }}>{error}</div>}
+          {error && <div style={{ color: "#F09090", fontSize: "16px", marginBottom: "10px", fontFamily: "'Playfair Display', Georgia, serif" }}>{error}</div>}
           {resetSent ? (
-            <div style={{ padding: "14px", background: "#52B78820", border: "1px solid #52B78844", borderRadius: "8px", textAlign: "center", color: "#52B788", fontSize: "14px", marginTop: "8px", fontFamily: "'Playfair Display', Georgia, serif" }}>
+            <div style={{ padding: "14px", background: "#52B78820", border: "1px solid #52B78844", borderRadius: "8px", textAlign: "center", color: "#52B788", fontSize: "16px", marginTop: "8px", fontFamily: "'Playfair Display', Georgia, serif" }}>
               ✓ Password reset email sent — check your inbox.
             </div>
           ) : (
@@ -154,13 +154,13 @@ function LoginScreen({ onLogin, onSignup }) {
               {loading ? "Signing in..." : "Sign in →"}
             </button>
           )}
-          <button onClick={handleForgotPassword} disabled={loading} style={{ ...btn(false), marginTop: "8px", fontSize: "13px", opacity: 0.7 }}>
+          <button onClick={handleForgotPassword} disabled={loading} style={{ ...btn(false), marginTop: "8px", fontSize: "15px", opacity: 0.7 }}>
             Forgot password?
           </button>
         </div>
-        <div style={{ textAlign: "center", marginTop: "20px", fontSize: "13px", color: T.textMuted, fontFamily: "'Playfair Display', Georgia, serif" }}>
+        <div style={{ textAlign: "center", marginTop: "20px", fontSize: "15px", color: T.textMuted, fontFamily: "'Playfair Display', Georgia, serif" }}>
           New here?{" "}
-          <button onClick={onSignup} style={{ background: "none", border: "none", color: T.coral, cursor: "pointer", fontSize: "13px", fontFamily: "'Playfair Display', Georgia, serif", padding: 0 }}>
+          <button onClick={onSignup} style={{ background: "none", border: "none", color: T.coral, cursor: "pointer", fontSize: "15px", fontFamily: "'Playfair Display', Georgia, serif", padding: 0 }}>
             Create an account →
           </button>
         </div>
