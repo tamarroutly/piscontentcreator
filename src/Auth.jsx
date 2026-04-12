@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef } from "react";
-import { Turnstile } from "@marsidev/react-turnstile";
 import { supabase } from "./lib/supabase";
 
 const TURNSTILE_SITE_KEY = import.meta.env.VITE_TURNSTILE_SITE_KEY || "";
@@ -192,6 +191,35 @@ function SignupScreen({ onSwitch, onAuthenticated }) {
   const [captchaToken, setCaptchaToken] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const turnstileRef = useRef(null);
+  const widgetId = useRef(null);
+
+  useEffect(() => {
+    if (!TURNSTILE_SITE_KEY) return;
+    const render = () => {
+      if (window.turnstile && turnstileRef.current && widgetId.current === null) {
+        widgetId.current = window.turnstile.render(turnstileRef.current, {
+          sitekey: TURNSTILE_SITE_KEY,
+          theme: "dark",
+          appearance: "always",
+          callback: (token) => setCaptchaToken(token),
+          "expired-callback": () => setCaptchaToken(""),
+          "error-callback": () => setCaptchaToken(""),
+        });
+      }
+    };
+    if (window.turnstile) { render(); }
+    else {
+      const t = setInterval(() => { if (window.turnstile) { clearInterval(t); render(); } }, 100);
+      return () => clearInterval(t);
+    }
+    return () => {
+      if (widgetId.current !== null && window.turnstile) {
+        window.turnstile.remove(widgetId.current);
+        widgetId.current = null;
+      }
+    };
+  }, []);
 
   async function handleSignup() {
     if (!name.trim() || !email.trim() || !orgName.trim() || !password) {
@@ -278,9 +306,7 @@ function SignupScreen({ onSwitch, onAuthenticated }) {
           </div>
 
           {TURNSTILE_SITE_KEY && (
-            <div style={{ marginBottom: "16px" }}>
-              <Turnstile siteKey={TURNSTILE_SITE_KEY} onSuccess={setCaptchaToken} onError={() => setCaptchaToken("")} onExpire={() => setCaptchaToken("")} options={{ theme: "dark", size: "normal", appearance: "always" }} />
-            </div>
+            <div ref={turnstileRef} style={{ marginBottom: "16px" }} />
           )}
 
           {error && <div style={{ color: "#F09090", fontSize: "14px", marginBottom: "12px", fontFamily: "'Playfair Display', Georgia, serif" }}>{error}</div>}
