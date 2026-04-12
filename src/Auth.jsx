@@ -190,7 +190,7 @@ function SignupScreen({ onSwitch, onAuthenticated }) {
     }
   }
 
-  const lbl = { fontSize: "12px", letterSpacing: "2px", textTransform: "uppercase", color: T.textMuted, display: "block", marginBottom: "6px", fontFamily: "'Playfair Display', Georgia, serif" };
+  const lbl = { fontSize: "12px", letterSpacing: "2px", textTransform: "uppercase", color: T.text, display: "block", marginBottom: "6px", fontFamily: "'Playfair Display', Georgia, serif" };
 
   return (
     <div style={{ minHeight: "100vh", background: T.bg, display: "flex", alignItems: "center", justifyContent: "center", padding: "20px 20px 40px" }}>
@@ -306,10 +306,10 @@ function AccountSetupScreen({ onComplete }) {
           <div style={{ fontSize: "20px", fontWeight: "700", color: T.text, marginBottom: "6px", fontFamily: "'Playfair Display', Georgia, serif" }}>Account Setup</div>
           <div style={{ fontSize: "14px", color: T.textMuted, marginBottom: "24px", fontFamily: "'Playfair Display', Georgia, serif" }}>This only takes a minute.</div>
 
-          <label style={{ fontSize: "12px", letterSpacing: "2px", textTransform: "uppercase", color: T.textMuted, display: "block", marginBottom: "6px", fontFamily: "'Playfair Display', Georgia, serif" }}>Your Name</label>
+          <label style={{ fontSize: "12px", letterSpacing: "2px", textTransform: "uppercase", color: T.text, display: "block", marginBottom: "6px", fontFamily: "'Playfair Display', Georgia, serif" }}>Your Name</label>
           <input type="text" placeholder="Full name" value={name} onChange={e => setName(e.target.value)} style={inp} autoFocus />
 
-          <label style={{ fontSize: "12px", letterSpacing: "2px", textTransform: "uppercase", color: T.textMuted, display: "block", marginBottom: "6px", fontFamily: "'Playfair Display', Georgia, serif" }}>Your Timezone</label>
+          <label style={{ fontSize: "12px", letterSpacing: "2px", textTransform: "uppercase", color: T.text, display: "block", marginBottom: "6px", fontFamily: "'Playfair Display', Georgia, serif" }}>Your Timezone</label>
           <select value={timezone} onChange={e => setTimezone(e.target.value)} style={{ ...inp, cursor: "pointer" }}>
             {TIMEZONES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
           </select>
@@ -317,7 +317,7 @@ function AccountSetupScreen({ onComplete }) {
             Detected: {tzLabel} — publish schedules will display in your local time.
           </div>
 
-          <label style={{ fontSize: "12px", letterSpacing: "2px", textTransform: "uppercase", color: T.textMuted, display: "block", marginBottom: "6px", fontFamily: "'Playfair Display', Georgia, serif" }}>Create Password</label>
+          <label style={{ fontSize: "12px", letterSpacing: "2px", textTransform: "uppercase", color: T.text, display: "block", marginBottom: "6px", fontFamily: "'Playfair Display', Georgia, serif" }}>Create Password</label>
           <input type="password" placeholder="At least 8 characters" value={password} onChange={e => setPassword(e.target.value)} style={inp} />
           <input type="password" placeholder="Confirm password" value={confirm} onChange={e => setConfirm(e.target.value)} onKeyDown={e => e.key === "Enter" && handleSetup()} style={inp} />
 
