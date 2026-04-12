@@ -279,7 +279,7 @@ function SignupScreen({ onSwitch, onAuthenticated }) {
 
           {TURNSTILE_SITE_KEY && (
             <div style={{ marginBottom: "16px" }}>
-              <Turnstile siteKey={TURNSTILE_SITE_KEY} onSuccess={setCaptchaToken} onError={() => setCaptchaToken("")} onExpire={() => setCaptchaToken("")} options={{ theme: "dark", size: "normal" }} />
+              <Turnstile siteKey={TURNSTILE_SITE_KEY} onSuccess={setCaptchaToken} onError={() => setCaptchaToken("")} onExpire={() => setCaptchaToken("")} options={{ theme: "dark", size: "normal", appearance: "always" }} />
             </div>
           )}
 
