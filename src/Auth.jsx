@@ -196,28 +196,43 @@ function SignupScreen({ onSwitch, onAuthenticated }) {
 
   useEffect(() => {
     if (!TURNSTILE_SITE_KEY) return;
-    const render = () => {
-      if (window.turnstile && turnstileRef.current && widgetId.current === null) {
-        widgetId.current = window.turnstile.render(turnstileRef.current, {
+    let cancelled = false;
+    let localWidgetId = null;
+
+    const doRender = () => {
+      if (cancelled || !turnstileRef.current || !window.turnstile) return;
+      try {
+        localWidgetId = window.turnstile.render(turnstileRef.current, {
           sitekey: TURNSTILE_SITE_KEY,
           theme: "dark",
           appearance: "always",
-          callback: (token) => setCaptchaToken(token),
-          "expired-callback": () => setCaptchaToken(""),
-          "error-callback": () => setCaptchaToken(""),
+          callback: (token) => { if (!cancelled) setCaptchaToken(token); },
+          "expired-callback": () => { if (!cancelled) setCaptchaToken(""); },
+          "error-callback": () => { if (!cancelled) setCaptchaToken(""); },
         });
+      } catch (e) {
+        console.warn("Turnstile render failed:", e);
       }
     };
-    if (window.turnstile) { render(); }
-    else {
-      const t = setInterval(() => { if (window.turnstile) { clearInterval(t); render(); } }, 100);
-      return () => clearInterval(t);
-    }
-    return () => {
-      if (widgetId.current !== null && window.turnstile) {
-        window.turnstile.remove(widgetId.current);
-        widgetId.current = null;
+
+    const tryRender = () => {
+      if (window.turnstile) {
+        requestAnimationFrame(doRender);
+      } else {
+        const t = setInterval(() => {
+          if (window.turnstile) { clearInterval(t); requestAnimationFrame(doRender); }
+        }, 100);
+        return () => clearInterval(t);
       }
+    };
+
+    const cleanup = tryRender();
+    return () => {
+      cancelled = true;
+      if (cleanup) cleanup();
+      try {
+        if (localWidgetId != null && window.turnstile) window.turnstile.remove(localWidgetId);
+      } catch (e) {}
     };
   }, []);
 
