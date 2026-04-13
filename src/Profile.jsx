@@ -3,7 +3,7 @@ import { supabase } from "./lib/supabase";
 
 const T = {
   bg: "#1A1A1A", surface: "#212121", card: "#2A2A2A", cardBorder: "#3A3A3A",
-  text: "#FFFFFF", textSecondary: "#CECECE", textMuted: "#8E8EA0",
+  text: "#FFFFFF", textSecondary: "#CECECE", textMuted: "#FFFFFF",
   coral: "#D97757", coralSoft: "#D9775718", coralMid: "#D9775740",
 };
 
