@@ -310,6 +310,7 @@ function SettingsView({ globalSettings, setGlobalSettings, saveGlobalSettings, g
     { id: "integrations", label: "Integrations", icon: "🔌" },
     { id: "workspace", label: "Workspace", icon: "🏢" },
     { id: "team", label: "Team", icon: "👥" },
+    { id: "codes", label: "Access Codes", icon: "🔑" },
     { id: "billing", label: "Billing", icon: "💳" },
   ];
 
@@ -472,6 +473,10 @@ function SettingsView({ globalSettings, setGlobalSettings, saveGlobalSettings, g
           </div>
         )}
 
+        {activeSection === "codes" && (
+          <AccessCodesSection supabase={supabase} T={T} PF={PF} FF={FF} inp={inp} />
+        )}
+
         {activeSection === "billing" && (
           <div style={{ maxWidth: "680px" }}>
             <div style={{ marginBottom: "28px" }}>
@@ -494,6 +499,126 @@ function SettingsView({ globalSettings, setGlobalSettings, saveGlobalSettings, g
           </div>
         )}
 
+      </div>
+    </div>
+  );
+}
+
+// ── ACCESS CODES SECTION ──────────────────────────────────────────────────────
+function AccessCodesSection({ supabase, T, PF, FF, inp }) {
+  const [codes, setCodes] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [newCode, setNewCode] = useState("");
+  const [newMaxUses, setNewMaxUses] = useState("1");
+  const [creating, setCreating] = useState(false);
+  const [msg, setMsg] = useState("");
+
+  useEffect(() => { loadCodes(); }, []);
+
+  async function loadCodes() {
+    setLoading(true);
+    const { data } = await supabase.from("access_codes").select("*").order("created_at", { ascending: false });
+    setCodes(data || []);
+    setLoading(false);
+  }
+
+  function generateCode() {
+    const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+    let code = "";
+    for (let i = 0; i < 8; i++) code += chars[Math.floor(Math.random() * chars.length)];
+    setNewCode(code);
+  }
+
+  async function createCode() {
+    if (!newCode.trim()) { setMsg("Enter a code first."); return; }
+    setCreating(true); setMsg("");
+    const { error } = await supabase.from("access_codes").insert({
+      code: newCode.trim().toUpperCase(),
+      max_uses: parseInt(newMaxUses) || 1,
+    });
+    if (error) {
+      setMsg(error.message.includes("unique") ? "That code already exists." : error.message);
+    } else {
+      setMsg("✓ Code created!");
+      setNewCode(""); setNewMaxUses("1");
+      loadCodes();
+    }
+    setCreating(false);
+    setTimeout(() => setMsg(""), 3000);
+  }
+
+  async function toggleActive(id, current) {
+    await supabase.from("access_codes").update({ active: !current }).eq("id", id);
+    loadCodes();
+  }
+
+  const lbl = { fontSize: "12px", letterSpacing: "2px", textTransform: "uppercase", color: T.textSecondary, marginBottom: "6px", display: "block", fontFamily: FF };
+
+  return (
+    <div style={{ maxWidth: "680px" }}>
+      <div style={{ marginBottom: "28px" }}>
+        <div style={{ fontSize: "28px", fontWeight: "600", color: T.text, marginBottom: "6px", fontFamily: PF }}>Access Codes</div>
+        <div style={{ fontSize: "15px", color: T.textMuted, fontStyle: "italic" }}>Control who can sign up. Every new account requires a valid code.</div>
+      </div>
+
+      {/* Create new code */}
+      <div style={{ background: T.card, border: "1px solid " + T.cardBorder, borderRadius: "12px", padding: "24px", marginBottom: "24px" }}>
+        <div style={{ fontSize: "16px", fontWeight: "700", color: T.text, marginBottom: "16px", fontFamily: PF }}>Create New Code</div>
+        <div style={{ display: "flex", gap: "10px", marginBottom: "12px", flexWrap: "wrap" }}>
+          <div style={{ flex: 2, minWidth: "180px" }}>
+            <label style={lbl}>Code</label>
+            <input
+              style={{ ...inp, letterSpacing: "3px", fontWeight: "700", textTransform: "uppercase" }}
+              value={newCode}
+              onChange={e => setNewCode(e.target.value.toUpperCase())}
+              placeholder="e.g. EARLYBIRD"
+              maxLength={20}
+            />
+          </div>
+          <div style={{ flex: 1, minWidth: "100px" }}>
+            <label style={lbl}>Max Uses</label>
+            <input
+              style={inp}
+              type="number"
+              min="1"
+              max="999"
+              value={newMaxUses}
+              onChange={e => setNewMaxUses(e.target.value)}
+            />
+          </div>
+        </div>
+        <div style={{ display: "flex", gap: "10px" }}>
+          <button onClick={generateCode} style={{ padding: "10px 18px", background: T.surface, border: "1px solid " + T.cardBorder, borderRadius: "6px", color: T.text, fontSize: "13px", cursor: "pointer", fontFamily: FF }}>
+            🎲 Generate Random
+          </button>
+          <button onClick={createCode} disabled={creating} style={{ padding: "10px 24px", background: T.coral, border: "none", borderRadius: "6px", color: "#fff", fontSize: "13px", fontWeight: "700", cursor: "pointer", fontFamily: FF }}>
+            {creating ? "Creating..." : "Create Code →"}
+          </button>
+        </div>
+        {msg && <div style={{ marginTop: "10px", fontSize: "13px", color: msg.startsWith("✓") ? "#52B788" : "#F09090", fontFamily: FF }}>{msg}</div>}
+      </div>
+
+      {/* Code list */}
+      <div style={{ background: T.card, border: "1px solid " + T.cardBorder, borderRadius: "12px", overflow: "hidden" }}>
+        <div style={{ padding: "16px 20px", borderBottom: "1px solid " + T.cardBorder, display: "grid", gridTemplateColumns: "1fr 80px 80px 80px", gap: "12px" }}>
+          {["Code", "Uses", "Max", "Status"].map(h => (
+            <div key={h} style={{ fontSize: "11px", letterSpacing: "2px", textTransform: "uppercase", color: T.textMuted, fontFamily: FF }}>{h}</div>
+          ))}
+        </div>
+        {loading ? (
+          <div style={{ padding: "24px", textAlign: "center", color: T.textMuted, fontSize: "14px", fontFamily: FF }}>Loading...</div>
+        ) : codes.length === 0 ? (
+          <div style={{ padding: "24px", textAlign: "center", color: T.textMuted, fontSize: "14px", fontFamily: FF }}>No codes yet — create one above.</div>
+        ) : codes.map(c => (
+          <div key={c.id} style={{ padding: "14px 20px", borderBottom: "1px solid " + T.cardBorder, display: "grid", gridTemplateColumns: "1fr 80px 80px 80px", gap: "12px", alignItems: "center", opacity: c.active ? 1 : 0.5 }}>
+            <div style={{ fontFamily: FF, fontWeight: "700", color: T.text, letterSpacing: "2px", fontSize: "14px" }}>{c.code}</div>
+            <div style={{ fontFamily: FF, color: c.uses >= c.max_uses ? "#F09090" : "#52B788", fontSize: "14px" }}>{c.uses}</div>
+            <div style={{ fontFamily: FF, color: T.textSecondary, fontSize: "14px" }}>{c.max_uses}</div>
+            <button onClick={() => toggleActive(c.id, c.active)} style={{ padding: "4px 10px", background: c.active ? "#52B78820" : T.surface, border: "1px solid " + (c.active ? "#52B788" : T.cardBorder), borderRadius: "4px", color: c.active ? "#52B788" : T.textMuted, fontSize: "11px", cursor: "pointer", fontFamily: FF, fontWeight: "700" }}>
+              {c.active ? "ACTIVE" : "OFF"}
+            </button>
+          </div>
+        ))}
       </div>
     </div>
   );

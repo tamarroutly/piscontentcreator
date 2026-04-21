@@ -6,9 +6,22 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: "Server not configured." });
   }
 
-  const { userId, orgName, userName, timezone } = req.body || {};
+  const { userId, orgName, userName, timezone, accessCode } = req.body || {};
   if (!userId || !orgName || !userName) {
     return res.status(400).json({ error: "userId, orgName, and userName are required." });
+  }
+
+  // Validate access code
+  if (accessCode) {
+    const { data: codeRow } = await (await import("@supabase/supabase-js"))
+      .createClient(VITE_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
+      .from("access_codes")
+      .select("id, uses, max_uses, active")
+      .eq("code", accessCode.trim().toUpperCase())
+      .maybeSingle();
+    if (!codeRow || !codeRow.active || codeRow.uses >= codeRow.max_uses) {
+      return res.status(400).json({ error: "Invalid or expired access code." });
+    }
   }
 
   const { createClient } = await import("@supabase/supabase-js");
@@ -46,6 +59,14 @@ export default async function handler(req, res) {
       org_id: org.id,
     });
     if (profErr) throw profErr;
+
+    // Redeem the access code
+    if (accessCode) {
+      const { data: codeRow } = await admin.from("access_codes").select("uses").eq("code", accessCode.trim().toUpperCase()).maybeSingle();
+      if (codeRow) {
+        await admin.from("access_codes").update({ uses: codeRow.uses + 1 }).eq("code", accessCode.trim().toUpperCase());
+      }
+    }
 
     return res.status(200).json({ success: true, orgId: org.id });
   } catch (e) {
